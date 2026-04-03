@@ -58,7 +58,7 @@ interface KernelSession {
   sessionId: string
   coordinator: {
     hooks: {
-      register(event: string, handler: (event: string, data: string) => Promise<string>, priority: number, name: string): void
+      register(event: string, handler: (...args: unknown[]) => unknown, priority: number, name: string): void
       emit(event: string, dataJson: string): Promise<{ action: string; reason?: string }>
       setDefaultFields(defaultsJson: string): void
     }

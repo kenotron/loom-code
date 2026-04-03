@@ -16,7 +16,7 @@ export interface LoomTool {
 /** Handler registered with the amplifier-core hook registry. */
 export interface LoomHookHandler {
   event: string
-  handler: (event: string, dataJson: string) => Promise<string>
+  handler: (...args: unknown[]) => unknown
   priority?: number
   name?: string
 }

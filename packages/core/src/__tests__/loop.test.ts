@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test'
+import { describe, it, expect, mock } from 'bun:test'
 import { runTurn } from '../loop'
 import { createToolMap, registerPackageTools } from '../tools'
 import type { LoomTool } from '../types'
@@ -205,6 +205,7 @@ describe('runTurn — text-only response', () => {
 
     expect(emittedEvents).toContain('prompt:submit')
     expect(emittedEvents).toContain('prompt:complete')
+    expect(emittedEvents.indexOf('prompt:submit')).toBeLessThan(emittedEvents.indexOf('prompt:complete'))
   })
 })
 
@@ -262,6 +263,7 @@ describe('runTurn — tool use', () => {
 
     expect(emittedEvents).toContain('tool:pre')
     expect(emittedEvents).toContain('tool:post')
+    expect(emittedEvents.indexOf('tool:pre')).toBeLessThan(emittedEvents.indexOf('tool:post'))
   })
 
   it('blocks tool execution when hook returns Deny', async () => {

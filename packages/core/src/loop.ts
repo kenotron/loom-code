@@ -1,6 +1,8 @@
 import type { ToolMap } from './tools'
 import { deriveToolSpecs } from './tools'
 
+const DEFAULT_MAX_TOKENS = 8096
+
 /** Shape of a streaming client compatible with Anthropic SDK's messages.stream() */
 export interface StreamingClient {
   messages: {
@@ -45,6 +47,8 @@ export interface LoopOptions {
   onToken: (delta: string) => void
   onToolStart: (name: string) => void
   onToolEnd: (name: string, success: boolean, output: string) => void
+  maxTurns?: number // defaults to 20 — prevents runaway loops
+  maxTokens?: number // defaults to DEFAULT_MAX_TOKENS (8096)
 }
 
 /**
@@ -72,7 +76,12 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
   messages.push({ role: 'user', content: prompt })
   await hooks.emit('prompt:submit', JSON.stringify({ prompt }))
 
+  let turn = 0
   while (true) {
+    if (turn++ >= (opts.maxTurns ?? 20)) {
+      throw new Error(`[loom-code/core] runTurn exceeded maxTurns (${opts.maxTurns ?? 20})`)
+    }
+
     // Derive tool specs fresh each iteration so dynamic tool additions are picked up
     let toolSpecs: ReturnType<typeof deriveToolSpecs>
     try {
@@ -83,13 +92,20 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
       toolSpecs = []
     }
 
-    const stream = await client.messages.stream({
-      model,
-      max_tokens: 8096,
-      system: systemPrompt,
-      tools: toolSpecs,
-      messages,
-    })
+    let stream: Awaited<ReturnType<typeof client.messages.stream>>
+    try {
+      stream = await client.messages.stream({
+        model,
+        max_tokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
+        system: systemPrompt,
+        tools: toolSpecs,
+        messages,
+      })
+    } catch (err) {
+      throw new Error(
+        `[loom-code/core] LLM API call failed on turn ${turn}: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
 
     // Stream text tokens to caller
     for await (const event of stream) {
@@ -102,7 +118,14 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
       }
     }
 
-    const response = await stream.finalMessage()
+    let response: Awaited<ReturnType<typeof stream.finalMessage>>
+    try {
+      response = await stream.finalMessage()
+    } catch (err) {
+      throw new Error(
+        `[loom-code/core] stream.finalMessage() failed on turn ${turn}: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
     messages.push({ role: 'assistant', content: response.content })
 
     if (response.stop_reason === 'end_turn') {
@@ -119,7 +142,6 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
 
       for (const block of response.content.filter((b) => b.type === 'tool_use')) {
         const toolName = block.name ?? 'unknown'
-        onToolStart(toolName)
 
         // Pre-flight hook — can deny tool execution
         const pre = await hooks.emit(
@@ -132,6 +154,7 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
         if (pre.action === 'Deny') {
           output = { success: false, output: `blocked: ${pre.reason ?? 'policy'}` }
         } else {
+          onToolStart(toolName) // fires ONLY when tool will actually execute
           const bridge = toolMap.get(toolName)
           if (!bridge) {
             output = { success: false, output: `unknown tool: ${toolName}` }

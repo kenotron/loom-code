@@ -28,7 +28,7 @@ export interface SessionCheckpoint {
   turnIndex: number
   /** IDs of messages added THIS turn only (typically 2-5). */
   newMessageIds: string[]
-  /** Written only when packages changed this turn. Otherwise omitted. */
+  /** Package identifiers in `name@version` format, e.g. `'@loom-code/shell@1.0.0'`. Written only when packages changed this turn. */
   toolSet?: string[]
   /** Written only when config changed this turn. Otherwise omitted. */
   config?: Record<string, unknown>
@@ -45,7 +45,7 @@ export interface CheckpointSnapshot {
   turnIndex: number
   /** Complete list of all message IDs up to this turn. */
   allMessageIds: string[]
-  /** Full tool set at this turn — always present in snapshots. */
+  /** Package identifiers in `name@version` format, e.g. `'@loom-code/shell@1.0.0'`. Always present in snapshots. */
   toolSet: string[]
   config?: Record<string, unknown>
   intent: string

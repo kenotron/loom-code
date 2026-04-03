@@ -147,7 +147,10 @@ describe('SessionMetadata', () => {
       turnCount: 15,
     }
     expect(meta.sessionId).toBe('abc123')
-    expect(meta.turnCount).toBe(15)
+    expect(meta.created).toBe('2026-04-03T10:00:00Z')
+    expect(meta.lastActive).toBe('2026-04-03T11:00:00Z')
+    expect(meta.model).toBe('claude-opus-4')
     expect(meta.intent).toBe('refactoring auth')
+    expect(meta.turnCount).toBe(15)
   })
 })

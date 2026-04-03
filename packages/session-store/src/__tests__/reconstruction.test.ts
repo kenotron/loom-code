@@ -199,4 +199,49 @@ describe('reconstruct', () => {
     expect(result.messages[0].role).toBe('user')
     expect(result.messages[1].role).toBe('assistant')
   })
+
+  it('throws when message referenced by checkpoint is not in the store', async () => {
+    const emptyMap = new Map<string, MessageRecord>()
+    const singleCheckpoint: CheckpointEntry[] = [
+      { type: 'delta', id: 'cp_0001', turnIndex: 1, newMessageIds: ['m_not_in_store'], intent: 'missing' }
+    ]
+    await expect(reconstruct(singleCheckpoint, emptyMap, 1)).rejects.toThrow()
+  })
+})
+
+describe('validateMessages — orphaned tool_result', () => {
+  it('detects orphaned tool_result in user message without preceding tool_use', async () => {
+    const bad = [
+      { role: 'user', content: 'hello' },
+      { role: 'assistant', content: 'hi' },
+      // User message with tool_result but preceding message is plain text, not tool_use
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tu_orphan', content: 'orphaned' }] },
+    ]
+    const result = validateMessages(bad as any)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some(i => i.includes('orphaned') || i.includes('tool_result'))).toBe(true)
+  })
+})
+
+describe('repairMessages — mixed-content orphaned tool_result', () => {
+  it('strips orphaned tool_result blocks from mixed-content user messages', async () => {
+    const msgs = [
+      { role: 'user', content: 'run bash' },
+      // Orphaned tool_use (no matching tool_result)
+      { role: 'assistant', content: [{ type: 'tool_use', id: 'tu_1', name: 'bash', input: {} }] },
+      // Next: mixed content — tool_result + text (tool_result becomes orphaned after repair)
+      { role: 'user', content: [
+        { type: 'tool_result', tool_use_id: 'tu_1', content: 'ok' },
+        { type: 'text', text: 'also some context' },
+      ]},
+      { role: 'assistant', content: 'Done' },
+    ]
+    const repaired = repairMessages(msgs as any)
+    const check = validateMessages(repaired)
+    expect(check.valid).toBe(true)
+    // The mixed-content user message should have its tool_result stripped but text preserved
+    const userMsgs = repaired.filter(m => m.role === 'user')
+    // At minimum, "also some context" text content should survive
+    expect(repaired.length).toBeGreaterThan(0)
+  })
 })

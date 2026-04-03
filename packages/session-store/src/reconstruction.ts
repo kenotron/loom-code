@@ -60,11 +60,7 @@ export function reconstructAt(
     if (cp.type === 'delta') return cp.toolSet !== undefined
     return false
   })
-  const toolSet = toolSetEntry
-    ? toolSetEntry.type === 'snapshot'
-      ? toolSetEntry.toolSet
-      : toolSetEntry.toolSet
-    : undefined
+  const toolSet = toolSetEntry?.toolSet
 
   // Find config: last checkpoint that defines it
   const configEntry = reversed.find(cp => cp.config !== undefined)
@@ -134,6 +130,30 @@ export function validateMessages(
     }
   }
 
+  // Also check user messages for orphaned tool_result blocks
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (msg.role !== 'user' || !Array.isArray(msg.content)) continue
+
+    const toolResultBlocks = (msg.content as any[]).filter(b => b.type === 'tool_result')
+    if (toolResultBlocks.length === 0) continue
+
+    const prev = messages[i - 1]
+    if (!prev || prev.role !== 'assistant' || !Array.isArray(prev.content)) {
+      issues.push(`Message ${i}: user has tool_result blocks but preceding message is not an assistant tool_use message`)
+      continue
+    }
+
+    const toolUseIds = new Set(
+      (prev.content as any[]).filter(b => b.type === 'tool_use').map(b => b.id as string)
+    )
+    for (const block of toolResultBlocks) {
+      if (!toolUseIds.has(block.tool_use_id)) {
+        issues.push(`Message ${i}: orphaned tool_result tool_use_id="${block.tool_use_id}" — no matching tool_use`)
+      }
+    }
+  }
+
   return { valid: issues.length === 0, issues }
 }
 
@@ -184,14 +204,19 @@ export function repairMessages(
           // Preserve any text content in the message
           result.push({ ...msg, content: textOnlyContent })
         }
-        // If the next message is a pure tool_result user message, skip it too —
-        // it would become orphaned without the tool_use it references
-        if (
-          next?.role === 'user' &&
-          Array.isArray(next.content) &&
-          (next.content as Array<{ type: string }>).every(b => b.type === 'tool_result')
-        ) {
-          i++ // skip the orphaned tool_result message
+        // If the next message has tool_result blocks, they are now orphaned
+        // without the tool_use they reference — handle accordingly
+        const nextMsg = messages[i + 1]
+        if (nextMsg?.role === 'user' && Array.isArray(nextMsg.content)) {
+          const contentWithoutResults = (nextMsg.content as any[]).filter(b => b.type !== 'tool_result')
+          if (contentWithoutResults.length === 0) {
+            i++ // skip user message — it only had tool_results, now empty
+          } else if (contentWithoutResults.length < (nextMsg.content as any[]).length) {
+            // Mixed content: keep text, strip orphaned tool_results
+            result.push({ ...nextMsg, content: contentWithoutResults })
+            i++
+          }
+          // If no tool_results in next message, don't skip it
         }
       }
     } else {

@@ -86,6 +86,7 @@ describe('deriveToolSpecs', () => {
     expect(specs[0].description).toBe('Echo input back')
     expect(specs[0].input_schema).toBeDefined()
     expect((specs[0].input_schema as any).type).toBe('object')
+    expect(specs[0].input_schema).toEqual(echoTool.schema)
   })
 
   it('includes all tools from map in specs', () => {

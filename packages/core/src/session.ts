@@ -54,6 +54,26 @@ export interface SessionOptions {
   parentId?: string
 }
 
+interface KernelSession {
+  sessionId: string
+  coordinator: {
+    hooks: {
+      register(event: string, handler: (event: string, data: string) => Promise<string>, priority: number, name: string): void
+      emit(event: string, dataJson: string): Promise<{ action: string; reason?: string }>
+      setDefaultFields(defaultsJson: string): void
+    }
+    cancellation: {
+      isCancelled: boolean
+      requestGraceful(reason?: string): void
+      requestImmediate(): void
+    }
+    resetTurn(): void
+    cleanup(): Promise<void>
+  }
+  setInitialized(): void
+  cleanup(): Promise<void>
+}
+
 /**
  * LoomSession — the main entry point for a conversation.
  *
@@ -69,8 +89,7 @@ export class LoomSession {
   readonly sessionId: string
   readonly parentId: string | undefined
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly _session: any
+  private readonly _session: KernelSession
   private readonly _config: LoomConfig
   private readonly _toolMap: ToolMap
   private readonly _messages: unknown[] = []
@@ -114,7 +133,7 @@ export class LoomSession {
 
   /** True if the session has been cancelled (graceful or immediate). */
   get isCancelled(): boolean {
-    return this._session.coordinator.cancellation.isCancelled as boolean
+    return this._session.coordinator.cancellation.isCancelled
   }
 
   /** Request graceful cancellation — LLM turn will complete before stopping. */
@@ -163,7 +182,7 @@ export class LoomSession {
       client: client as LoopOptions['client'],
       model: this._config.provider.model,
       systemPrompt: this._config.systemPrompt,
-      hooks: this._session.coordinator.hooks as LoopOptions['hooks'],
+      hooks: this._session.coordinator.hooks,
       onToken: callbacks.onToken ?? (() => {}),
       onToolStart: callbacks.onToolStart ?? (() => {}),
       onToolEnd: callbacks.onToolEnd ?? (() => {}),
@@ -178,8 +197,9 @@ export class LoomSession {
     this._cleanedUp = true
     try {
       await this._session.cleanup()
-    } catch {
-      // Cleanup errors are non-fatal
+    } catch (err) {
+      // Cleanup errors are non-fatal — log for observability
+      console.warn('[loom-code/core] LoomSession.cleanup() error (non-fatal):', err)
     }
   }
 }

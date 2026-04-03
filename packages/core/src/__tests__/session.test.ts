@@ -22,55 +22,55 @@ const mockConfig: LoomConfig = {
 }
 
 describe('LoomSession — construction', () => {
-  it('creates a session with a unique sessionId string', () => {
+  it('creates a session with a unique sessionId string', async () => {
     const session = new LoomSession(mockConfig)
     expect(typeof session.sessionId).toBe('string')
     expect(session.sessionId.length).toBeGreaterThan(0)
-    session.cleanup()
+    await session.cleanup()
   })
 
-  it('two sessions have different sessionIds', () => {
+  it('two sessions have different sessionIds', async () => {
     const a = new LoomSession(mockConfig)
     const b = new LoomSession(mockConfig)
     expect(a.sessionId).not.toBe(b.sessionId)
-    a.cleanup()
-    b.cleanup()
+    await a.cleanup()
+    await b.cleanup()
   })
 
-  it('creates child session with parentId pointing to parent', () => {
+  it('creates child session with parentId pointing to parent', async () => {
     const parent = new LoomSession(mockConfig)
     const child = new LoomSession(mockConfig, { parentId: parent.sessionId })
     expect(child.parentId).toBe(parent.sessionId)
-    parent.cleanup()
-    child.cleanup()
+    await parent.cleanup()
+    await child.cleanup()
   })
 
-  it('parentId is undefined when not specified', () => {
+  it('parentId is undefined when not specified', async () => {
     const session = new LoomSession(mockConfig)
     expect(session.parentId).toBeUndefined()
-    session.cleanup()
+    await session.cleanup()
   })
 })
 
 describe('LoomSession — cancellation', () => {
-  it('isCancelled is false initially', () => {
+  it('isCancelled is false initially', async () => {
     const session = new LoomSession(mockConfig)
     expect(session.isCancelled).toBe(false)
-    session.cleanup()
+    await session.cleanup()
   })
 
-  it('cancel() sets isCancelled to true', () => {
+  it('cancel() sets isCancelled to true', async () => {
     const session = new LoomSession(mockConfig)
     session.cancel()
     expect(session.isCancelled).toBe(true)
-    session.cleanup()
+    await session.cleanup()
   })
 
-  it('cancelImmediate() also sets isCancelled to true', () => {
+  it('cancelImmediate() also sets isCancelled to true', async () => {
     const session = new LoomSession(mockConfig)
     session.cancelImmediate()
     expect(session.isCancelled).toBe(true)
-    session.cleanup()
+    await session.cleanup()
   })
 })
 
@@ -85,16 +85,16 @@ describe('LoomSession — package management', () => {
     },
   }
 
-  it('registers tools from packages at construction', () => {
+  it('registers tools from packages at construction', async () => {
     const pkg: LoomPackage = { tools: [echoTool] }
     const config: LoomConfig = { ...mockConfig, packages: [pkg] }
     const session = new LoomSession(config)
     // Verify tool is accessible (will be used by runTurn)
     expect(session.hasToolNamed('echo')).toBe(true)
-    session.cleanup()
+    await session.cleanup()
   })
 
-  it('addPackage() registers new tools mid-session', () => {
+  it('addPackage() registers new tools mid-session', async () => {
     const session = new LoomSession(mockConfig)
     expect(session.hasToolNamed('echo')).toBe(false)
 
@@ -102,10 +102,10 @@ describe('LoomSession — package management', () => {
     session.addPackage(pkg)
 
     expect(session.hasToolNamed('echo')).toBe(true)
-    session.cleanup()
+    await session.cleanup()
   })
 
-  it('addPackage() called multiple times accumulates tools', () => {
+  it('addPackage() called multiple times accumulates tools', async () => {
     const calcTool: LoomTool = {
       name: 'calc',
       description: 'Calc',
@@ -117,7 +117,7 @@ describe('LoomSession — package management', () => {
     session.addPackage({ tools: [calcTool] })
     expect(session.hasToolNamed('echo')).toBe(true)
     expect(session.hasToolNamed('calc')).toBe(true)
-    session.cleanup()
+    await session.cleanup()
   })
 })
 

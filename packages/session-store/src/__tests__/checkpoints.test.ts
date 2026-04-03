@@ -29,6 +29,7 @@ describe('buildCheckpointEntry — delta', () => {
       prevToolSet: ['@loom-code/shell@1.0.0'],  // same
       intent: 'no toolset change',
     })
+    expect(entry.type).toBe('delta')
     if (entry.type === 'delta') {
       expect(entry.toolSet).toBeUndefined()
     }
@@ -43,6 +44,7 @@ describe('buildCheckpointEntry — delta', () => {
       prevToolSet: ['@loom-code/shell@1.0.0'],  // different!
       intent: 'added db package',
     })
+    expect(entry.type).toBe('delta')
     if (entry.type === 'delta') {
       expect(entry.toolSet).toEqual(['@loom-code/shell@1.0.0', '@loom-code/db@1.0.0'])
     }
@@ -60,6 +62,7 @@ describe('buildCheckpointEntry — delta', () => {
       prevConfig: config,  // same reference
       intent: 'no config change',
     })
+    expect(entry.type).toBe('delta')
     if (entry.type === 'delta') {
       expect(entry.config).toBeUndefined()
     }
@@ -76,6 +79,7 @@ describe('buildCheckpointEntry — delta', () => {
       prevConfig: { model: 'claude-opus-4' },  // different!
       intent: 'switched to haiku',
     })
+    expect(entry.type).toBe('delta')
     if (entry.type === 'delta') {
       expect(entry.config).toEqual({ model: 'claude-haiku-4' })
     }
@@ -90,6 +94,7 @@ describe('buildCheckpointEntry — delta', () => {
       prevToolSet: [],
       intent: 'turn with 3 new messages',
     })
+    expect(entry.type).toBe('delta')
     if (entry.type === 'delta') {
       expect(entry.newMessageIds).toEqual(['m_003', 'm_004', 'm_005'])
     }
@@ -132,6 +137,7 @@ describe('buildCheckpointEntry — full snapshot', () => {
       prevToolSet: [],
       intent: 'snapshot',
     })
+    expect(entry.type).toBe('snapshot')
     if (entry.type === 'snapshot') {
       expect(entry.allMessageIds).toHaveLength(42)
       expect(entry.allMessageIds).toContain('m_001')
@@ -148,6 +154,7 @@ describe('buildCheckpointEntry — full snapshot', () => {
       prevToolSet: ['@loom-code/shell@1.0.0'],  // unchanged, but snapshot must include it
       intent: 'snapshot with toolSet',
     })
+    expect(entry.type).toBe('snapshot')
     if (entry.type === 'snapshot') {
       expect(entry.toolSet).toEqual(['@loom-code/shell@1.0.0'])
     }

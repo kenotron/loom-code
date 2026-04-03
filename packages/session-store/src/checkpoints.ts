@@ -54,7 +54,7 @@ export function buildCheckpointEntry(input: CheckpointInput): CheckpointEntry {
   }
 
   // Delta: only write toolSet and config when they changed
-  const toolSetChanged = JSON.stringify(toolSet) !== JSON.stringify(prevToolSet)
+  const toolSetChanged = JSON.stringify([...toolSet].sort()) !== JSON.stringify([...prevToolSet].sort())
   const configChanged = JSON.stringify(config) !== JSON.stringify(prevConfig)
 
   return {

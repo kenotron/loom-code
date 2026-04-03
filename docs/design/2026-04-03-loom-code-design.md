@@ -1,8 +1,8 @@
-# loom-chat-cli Design
+# loom-code Design
 
 ## Goal
 
-loom-chat-cli is a coding-assistant CLI with Claude Code-level TUI polish, built on amplifier-core
+loom-code is a coding-assistant CLI with Claude Code-level TUI polish, built on amplifier-core
 (Rust kernel) via napi-rs Node.js bindings. Full control over the session layer. No dependency on
 amplifier-foundation.
 
@@ -16,7 +16,7 @@ scroll, and frame debouncing — and still only achieves flicker-free rendering 
 third of sessions after years of engineering. The root cause is architectural: terminals are
 append-only streams with no compositor.
 
-loom-chat-cli replaces the rendering layer with OpenTUI (Zig-native double-buffered cell grids)
+loom-code replaces the rendering layer with OpenTUI (Zig-native double-buffered cell grids)
 and replaces the Python orchestration layer (amplifier-foundation) with TypeScript, while keeping
 the battle-tested Rust kernel (amplifier-core) for the agent runtime via napi-rs bindings.
 
@@ -79,31 +79,31 @@ Hooks throughout. No middleware abstraction anywhere in the stack. YAGNI.
 Four-layer vertical stack:
 
 ```
-┌─────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────┐
 │  UI Layer                                   │
 │  @opentui/react — ChatView, ToolPanel,      │
 │  InputBar, StatusBar, AttentionPanel        │
 │  Zig double-buffer → terminal               │
-└──────────────────┬──────────────────────────┘
+└─────────────────────────────┬─────────────────────────────────┘
                    │ React state / events
-┌──────────────────▼──────────────────────────┐
+┌─────────────────────────────▼─────────────────────────────────┐
 │  Session Orchestration (TypeScript)         │
 │  LoomSession — owns the agentic loop        │
 │  Streaming adapter — hooks → React state    │
 │  SessionStore — persist / resume            │
-└──────────────────┬──────────────────────────┘
+└─────────────────────────────┬─────────────────────────────────┘
                    │ JsAmplifierSession API
-┌──────────────────▼──────────────────────────┐
+┌─────────────────────────────▼─────────────────────────────────┐
 │  amplifier-core Rust Kernel (napi-rs)       │
 │  JsAmplifierSession, JsCoordinator          │
 │  JsHookRegistry, JsCancellationToken        │
-└──────────────────┬──────────────────────────┘
+└─────────────────────────────┬─────────────────────────────────┘
                    │ JsToolBridge + npm packages
-┌──────────────────▼──────────────────────────┐
+┌─────────────────────────────▼─────────────────────────────────┐
 │  Module Layer (npm)                         │
 │  @loom/provider-anthropic (TS, Anthropic SDK│
 │  @loom/shell, @loom/tool-fs, etc.           │
-└─────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Key insight.** The Session Orchestration layer occupies the space where amplifier-foundation
@@ -116,20 +116,20 @@ hooks that translate kernel events into React state updates, handles cancellatio
 Three screen zones plus a command palette overlay:
 
 ```
-┌─────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────┐
 │ claude-opus-4  2.1k tokens  #05476974       │  ← @loom/ui-status-bar (1 line, minimal)
-├─────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────┐ │
+├─────────────────────────────────────────────────────────┤
+│ ┌───────────────────────────────────────────────┐ │
 │ │ ▸ Refactor login flow                   │ │  ← @loom/ui-attention-panel
 │ │   ⏳ Review changes before continuing   │ │     (hidden when nothing pending)
-│ └─────────────────────────────────────────┘ │
-├─────────────────────────────────────────────┤
+│ └───────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
 │                                             │
 │   conversation history + tool panels        │  ← @loom/ui-chat-history
 │                                             │
-├─────────────────────────────────────────────┤
+├─────────────────────────────────────────────────────────┤
 │ ▸ _                              [mic]      │  ← @loom/ui-input-bar
-└─────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### Attention Panel (a2ui → TUI)
@@ -148,15 +148,15 @@ packages, session history, settings, save/resume. No slash commands for app conc
 namespace collisions with user skills or commands.
 
 ```
-┌────────────────────────────────────┐
+┌──────────────────────────────────────────────┐
 │  > _                               │  ← fuzzy search
-│  ─────────────────────────────     │
+│  ───────────────────────────────────     │
 │  Switch model / provider           │
 │  Manage tools (npm install...)     │
 │  Session history                   │
 │  Settings                          │
 │  Save session                      │
-└────────────────────────────────────┘
+└──────────────────────────────────────────────┘
 ```
 
 The input bar becomes a pure conversation channel. Skills and user-defined commands don't register
@@ -183,7 +183,7 @@ AI   I'll start by reading the current implementation.
 
      ✓ read_file  4 files                    ▶  ← grouped consecutive same-tool calls
      ✓ bash  pytest tests/auth/              ▶
-     ◉ thought for 3.2s                      ▶
+     ◯ thought for 3.2s                      ▶
 
      Here are the changes...
 ```
@@ -233,13 +233,13 @@ loop. The UI knows nothing about napi-rs — it only sees React state.
 
 ```
                     JsHookRegistry
-                    ┌────────────────────────────────────┐
-kernel events ────▶ │ token:stream  → append to message  │
-                    │ tool:pre      → add collapsed row   │ ──▶ React state
+                    ┌────────────────────────────────────────┐
+kernel events ─────▶ │ token:stream  → append to message  │
+                    │ tool:pre      → add collapsed row   │ ───▶ React state
                     │ tool:post     → update row status   │
                     │ thinking:end  → update duration     │
                     │ approval:req  → push to attention   │
-                    └────────────────────────────────────┘
+                    └────────────────────────────────────────┘
 ```
 
 Each hook handler is registered at session startup. They're pure state mutations — no async
@@ -430,7 +430,7 @@ LoomSession.runTurn(prompt)
 anthropic.messages.stream(...)
     │
     ├─ text delta ──▶ chatState.appendToken(delta)
-    │                 └─▶ OpenTUI coalesces at 30fps → only changed cells repaint
+    │                 └──▶ OpenTUI coalesces at 30fps → only changed cells repaint
     │
     ├─ stop: tool_use
     │   ├─ chatState.addToolRow(name, 'running')   ← ⟳ appears

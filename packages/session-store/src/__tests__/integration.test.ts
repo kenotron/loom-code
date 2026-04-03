@@ -172,6 +172,7 @@ describe('Full checkpoint lifecycle integration', () => {
 
     // Turn 1 checkpoint should NOT have toolSet (unchanged from empty)
     const cp1 = checkpoints.find(cp => cp.turnIndex === 1)!
+    expect(cp1.type).toBe('delta')
     if (cp1.type === 'delta') {
       expect(cp1.toolSet).toBeUndefined()
     }
@@ -210,7 +211,7 @@ describe('Full checkpoint lifecycle integration', () => {
     // reconstruct should recover (repair strips orphaned tool_use OR fallback to turn 1)
     const result = await reconstruct(checkpoints, messageMap, 2)
     expect(validateMessages(result.messages).valid).toBe(true)
-    expect(result.messages.length).toBeGreaterThan(0)
+    expect(result.messages.length).toBe(turn1Ids.length)
   })
 
   it('full cycle: write 20 turns and verify snapshot is created at turn 20', async () => {

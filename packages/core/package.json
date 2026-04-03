@@ -1,0 +1,15 @@
+{
+  "name": "@loom-code/core",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "amplifier-core": "file:/Users/ken/workspace/ms/amplifier-node/amplifier-core/bindings/node"
+  }
+}

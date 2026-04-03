@@ -1,0 +1,10 @@
+{
+  "name": "loom-code",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "bun test --recursive",
+    "test:watch": "bun test --watch --recursive",
+    "typecheck": "bunx tsc --noEmit"
+  }
+}

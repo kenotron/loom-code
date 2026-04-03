@@ -1,5 +1,4 @@
 import { appendFile, readFile } from 'fs/promises'
-import { existsSync } from 'fs'
 
 /**
  * Append-only JSONL file store.
@@ -24,10 +23,12 @@ export class JsonlStore {
    * Serialized via promise chain — safe to call concurrently.
    */
   append(entry: unknown): Promise<void> {
-    this._writeLock = this._writeLock.then(async () => {
+    const write = this._writeLock.then(async () => {
       await appendFile(this._path, JSON.stringify(entry) + '\n', 'utf8')
     })
-    return this._writeLock
+    // Lock chain must never reject — reset to resolved so future writes aren't blocked
+    this._writeLock = write.catch(() => {})
+    return write  // caller still gets the real error
   }
 
   /**
@@ -36,11 +37,23 @@ export class JsonlStore {
    * Never throws on a missing file.
    */
   async readAll<T = unknown>(): Promise<T[]> {
-    if (!existsSync(this._path)) return []
-    const content = await readFile(this._path, 'utf8')
+    let content: string
+    try {
+      content = await readFile(this._path, 'utf8')
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return []
+      throw err
+    }
     return content
       .split('\n')
       .filter(line => line.trim().length > 0)
-      .map(line => JSON.parse(line) as T)
+      .flatMap(line => {
+        try {
+          return [JSON.parse(line) as T]
+        } catch {
+          console.warn('[loom-code/session-store] Skipping malformed JSONL line:', line.slice(0, 80))
+          return []
+        }
+      })
   }
 }

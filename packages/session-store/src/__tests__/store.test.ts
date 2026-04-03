@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { JsonlStore } from '../store'
-import { mkdtempSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync, readFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -56,8 +56,6 @@ describe('JsonlStore', () => {
   it('each entry occupies exactly one line (JSONL format)', async () => {
     await store.append({ a: 1 })
     await store.append({ b: 2 })
-    // Read raw file to verify JSONL format
-    const { readFileSync } = await import('fs')
     const raw = readFileSync(join(tmpDir, 'test.jsonl'), 'utf8')
     const lines = raw.split('\n').filter(l => l.trim())
     expect(lines).toHaveLength(2)
@@ -82,6 +80,8 @@ describe('JsonlStore', () => {
     expect(ids.has('a')).toBe(true)
     expect(ids.has('b')).toBe(true)
     expect(ids.has('c')).toBe(true)
+    expect(ids.has('d')).toBe(true)
+    expect(ids.has('e')).toBe(true)
   })
 
   it('appends to an existing file without overwriting', async () => {
@@ -91,5 +91,22 @@ describe('JsonlStore', () => {
     await store2.append({ id: '2' })
     const entries = await store.readAll<{ id: string }>()
     expect(entries).toHaveLength(2)
+  })
+
+  it('skips malformed lines in readAll without throwing', async () => {
+    // Write a valid entry, then corrupt the file by appending a bad line
+    await store.append({ id: '1', value: 'good' })
+
+    // Manually append a malformed line using appendFile
+    const { appendFile: appendRaw } = await import('fs/promises')
+    await appendRaw(join(tmpDir, 'test.jsonl'), 'this is not json\n', 'utf8')
+
+    await store.append({ id: '2', value: 'also good' })
+
+    // readAll should skip the corrupt line and return the 2 valid entries
+    const entries = await store.readAll<{ id: string; value: string }>()
+    expect(entries).toHaveLength(2)
+    expect(entries[0].id).toBe('1')
+    expect(entries[1].id).toBe('2')
   })
 })

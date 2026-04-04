@@ -34,6 +34,15 @@
       "name": "@loom-code/session-store",
       "version": "0.1.0",
     },
+    "packages/ui-status-bar": {
+      "name": "@loom-code/ui-status-bar",
+      "version": "0.1.0",
+      "dependencies": {
+        "@opentui/core": "*",
+        "@opentui/react": "*",
+        "react": "*",
+      },
+    },
   },
   "packages": {
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.82.0", "", { "dependencies": { "json-schema-to-ts": "^3.1.1" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["zod"], "bin": { "anthropic-ai-sdk": "bin/cli" } }, "sha512-xdHTjL1GlUlDugHq/I47qdOKp/ROPvuHl7ROJCgUQigbvPu7asf9KcAcU1EqdrP2LuVhEKaTs7Z+ShpZDRzHdQ=="],
@@ -157,6 +166,8 @@
     "@loom-code/provider-anthropic": ["@loom-code/provider-anthropic@workspace:packages/provider-anthropic"],
 
     "@loom-code/session-store": ["@loom-code/session-store@workspace:packages/session-store"],
+
+    "@loom-code/ui-status-bar": ["@loom-code/ui-status-bar@workspace:packages/ui-status-bar"],
 
     "@napi-rs/cli": ["@napi-rs/cli@2.18.4", "", { "bin": { "napi": "scripts/index.js" } }, "sha512-SgJeA4df9DE2iAEpr3M2H0OKl/yjtg1BnRI5/JyowS71tUWhrfSu2LT0V3vlHET+g1hBVlrO60PmEXwUEKp8Mg=="],
 

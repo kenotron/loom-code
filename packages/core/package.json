@@ -10,6 +10,6 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "amplifier-core": "file:../../../../../amplifier-node/amplifier-core/bindings/node"
+    "amplifier-core": "file:../../../amplifier-node/amplifier-core/bindings/node"
   }
 }

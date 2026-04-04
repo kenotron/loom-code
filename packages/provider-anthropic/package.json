@@ -1,0 +1,16 @@
+{
+  "name": "@loom-code/provider-anthropic",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "*",
+    "@loom-code/core": "*"
+  }
+}

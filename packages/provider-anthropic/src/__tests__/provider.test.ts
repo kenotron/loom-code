@@ -49,12 +49,12 @@ describe('createAnthropicProvider', () => {
 
   it('maxTokens defaults to 8096 when not configured', () => {
     const provider = createAnthropicProvider({ model: 'claude-opus-4' })
-    expect((provider as any).maxTokens).toBe(8096)
+    expect(provider.maxTokens).toBe(8096)
   })
 
   it('maxTokens uses configured value when provided', () => {
     const provider = createAnthropicProvider({ model: 'claude-opus-4', maxTokens: 4096 })
-    expect((provider as any).maxTokens).toBe(4096)
+    expect(provider.maxTokens).toBe(4096)
   })
 
   it('does not throw when apiKey comes from env var', () => {

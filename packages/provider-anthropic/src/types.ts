@@ -7,6 +7,11 @@ export interface AnthropicProviderConfig {
   model: string
   /** API key — defaults to ANTHROPIC_API_KEY environment variable if omitted */
   apiKey?: string
-  /** Maximum tokens per response — defaults to 8096 if omitted */
+  /**
+   * Maximum tokens per response — defaults to 8096 if omitted.
+   * Note: this field is passed through on the returned LoomProvider but
+   * requires the consuming LoomSession to forward it to the agentic loop.
+   * Currently used directly by the loop via provider.maxTokens if present.
+   */
   maxTokens?: number
 }

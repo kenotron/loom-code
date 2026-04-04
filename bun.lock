@@ -22,6 +22,14 @@
         "amplifier-core": "file:../../../../../amplifier-node/amplifier-core/bindings/node",
       },
     },
+    "packages/provider-anthropic": {
+      "name": "@loom-code/provider-anthropic",
+      "version": "0.1.0",
+      "dependencies": {
+        "@anthropic-ai/sdk": "*",
+        "@loom-code/core": "*",
+      },
+    },
     "packages/session-store": {
       "name": "@loom-code/session-store",
       "version": "0.1.0",
@@ -145,6 +153,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@loom-code/core": ["@loom-code/core@workspace:packages/core"],
+
+    "@loom-code/provider-anthropic": ["@loom-code/provider-anthropic@workspace:packages/provider-anthropic"],
 
     "@loom-code/session-store": ["@loom-code/session-store@workspace:packages/session-store"],
 

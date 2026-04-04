@@ -1,4 +1,18 @@
-import { describe, it, expect } from 'bun:test'
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+
+let savedApiKey: string | undefined
+
+beforeEach(() => {
+  savedApiKey = process.env.ANTHROPIC_API_KEY
+})
+
+afterEach(() => {
+  if (savedApiKey !== undefined) {
+    process.env.ANTHROPIC_API_KEY = savedApiKey
+  } else {
+    delete process.env.ANTHROPIC_API_KEY
+  }
+})
 
 describe('@loom-code/provider-anthropic barrel exports', () => {
   it('exports createAnthropicProvider', async () => {

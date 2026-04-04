@@ -43,9 +43,9 @@ describe('InputBarCallbacks', () => {
 })
 
 describe('InputBarProps', () => {
-  it('takes state, callbacks, and optional placeholder', () => {
+  it('takes initialState, callbacks, and optional placeholder', () => {
     const props: InputBarProps = {
-      state: { value: '', micActive: false },
+      initialState: { value: '', micActive: false },
       callbacks: { onSubmit: (_t) => {} },
       placeholder: 'Ask anything...',
     }
@@ -54,7 +54,7 @@ describe('InputBarProps', () => {
 
   it('placeholder is optional', () => {
     const props: InputBarProps = {
-      state: { value: '', micActive: false },
+      initialState: { value: '', micActive: false },
       callbacks: { onSubmit: (_t) => {} },
     }
     expect(props.placeholder).toBeUndefined()

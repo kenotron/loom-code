@@ -14,14 +14,13 @@ const MIC_ACTIVE_ICON = '●'
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
  */
-export function InputBar({ state: externalState, callbacks, placeholder = '▸' }: InputBarProps) {
-  const [state, setState] = useState(externalState)
+export function InputBar({ initialState, callbacks, placeholder = '▸' }: InputBarProps) {
+  const [state, setState] = useState(initialState)
 
   const handleInput = useCallback((value: string) => {
-    const next = updateValue(state, value)
-    setState(next)
+    setState(prev => updateValue(prev, value))
     callbacks.onValueChange?.(value)
-  }, [state, callbacks])
+  }, [callbacks])
 
   const handleSubmit = useCallback(() => {
     const { newState, submitted } = submitValue(state)

@@ -25,7 +25,8 @@ export interface InputBarCallbacks {
  * Props for the InputBar component.
  */
 export interface InputBarProps {
-  state: InputBarState
+  /** Initial state — used at mount time. The component manages its editing buffer after mount. */
+  initialState: InputBarState
   callbacks: InputBarCallbacks
   /** Placeholder text shown when input is empty. Default: '▸' */
   placeholder?: string

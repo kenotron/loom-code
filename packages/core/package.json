@@ -10,6 +10,6 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "amplifier-core": "file:../../../amplifier-node/amplifier-core/bindings/node"
+    "amplifier-core": "npm:@kenotron-ms/amplifier-core@^1.3.4"
   }
 }

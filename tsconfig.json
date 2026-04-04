@@ -4,6 +4,7 @@
     { "path": "packages/core" },
     { "path": "packages/session-store" },
     { "path": "packages/provider-anthropic" },
-    { "path": "packages/ui-status-bar" }
+    { "path": "packages/ui-status-bar" },
+    { "path": "packages/ui-input-bar" }
   ]
 }

@@ -34,6 +34,24 @@
       "name": "@loom-code/session-store",
       "version": "0.1.0",
     },
+    "packages/ui-attention-panel": {
+      "name": "@loom-code/ui-attention-panel",
+      "version": "0.1.0",
+      "dependencies": {
+        "@opentui/core": "*",
+        "@opentui/react": "*",
+        "react": "*",
+      },
+    },
+    "packages/ui-chat-history": {
+      "name": "@loom-code/ui-chat-history",
+      "version": "0.1.0",
+      "dependencies": {
+        "@opentui/core": "*",
+        "@opentui/react": "*",
+        "react": "*",
+      },
+    },
     "packages/ui-input-bar": {
       "name": "@loom-code/ui-input-bar",
       "version": "0.1.0",
@@ -131,6 +149,10 @@
     "@loom-code/provider-anthropic": ["@loom-code/provider-anthropic@workspace:packages/provider-anthropic"],
 
     "@loom-code/session-store": ["@loom-code/session-store@workspace:packages/session-store"],
+
+    "@loom-code/ui-attention-panel": ["@loom-code/ui-attention-panel@workspace:packages/ui-attention-panel"],
+
+    "@loom-code/ui-chat-history": ["@loom-code/ui-chat-history@workspace:packages/ui-chat-history"],
 
     "@loom-code/ui-input-bar": ["@loom-code/ui-input-bar@workspace:packages/ui-input-bar"],
 

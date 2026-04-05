@@ -240,8 +240,8 @@ export function App() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
   return (
-    <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%', justifyContent: 'flex-end' }}>
-      <box style={{ maxHeight: termHeight - 4, overflow: 'hidden' }}>
+    <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%' }}>
+      <box style={{ flexGrow: 1, overflow: 'hidden' }}>
         <AttentionPanel state={attentionState} />
         <ChatHistory
           state={historyState}

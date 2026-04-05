@@ -13,7 +13,28 @@ export interface LoomTool {
   execute: (inputJson: string) => Promise<string>
 }
 
-/** Handler registered with the amplifier-core hook registry. */
+/**
+ * Handler registered with the amplifier-core hook registry.
+ *
+ * ## Kernel contract (IMPORTANT — read before implementing a handler)
+ *
+ * The Rust kernel (`JsHookRegistry.register`) calls handlers with two string
+ * arguments and expects back a **JSON-serialised string** (not a plain object):
+ *
+ *   `(event: string, dataJson: string) => string | Promise<string>`
+ *
+ * The returned string must be a JSON object matching `JsHookResult`, e.g.:
+ *   - Allow:  `'{"action":"Continue"}'`
+ *   - Block:  `'{"action":"Deny","reason":"..."}'`
+ *
+ * Action values are PascalCase (`Continue`, `Deny`). Returning a plain JS
+ * object instead of a JSON string causes a napi-rs conversion panic at runtime:
+ * "failed to convert js value Object {…} to Rust string".
+ *
+ * The `handler` property below is typed broadly as `(...args: unknown[]) => unknown`
+ * for TypeScript compatibility with the `JsHookRegistry.register` binding, which
+ * uses the same loose signature. The runtime contract above is stricter.
+ */
 export interface LoomHookHandler {
   event: string
   handler: (...args: unknown[]) => unknown

@@ -1,0 +1,16 @@
+{
+  "name": "@loom-code/tool-tasks",
+  "version": "0.1.0",
+  "description": "Fast cross-agent task tracking for loom-code",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@loom-code/core": "workspace:*"
+  },
+  "devDependencies": {}
+}

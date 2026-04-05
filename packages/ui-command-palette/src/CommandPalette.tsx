@@ -36,7 +36,8 @@ export function CommandPalette({ state, onQueryChange, onExecute }: CommandPalet
             const item = state.filteredItems[state.selectedIndex]
             if (item) onExecute?.(item)
           }}
-          style={{ flexGrow: 1, fg: '#ffffff' }}
+          fg="#ffffff"
+          style={{ flexGrow: 1 }}
         />
       </box>
       <text fg="#303030">{'─'.repeat(40)}</text>

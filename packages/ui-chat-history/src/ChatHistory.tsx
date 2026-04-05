@@ -7,22 +7,22 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
     case 'user-message':
       return (
         <box key={item.id} style={{ flexDirection: 'row' }}>
-          <text fg="#7cb9e8">{'you   '}</text>
+          <text fg="#4fc3f7">{'you   '}</text>
           <text fg="#ffffff" attributes={1}>{item.message.content}</text>
         </box>
       )
     case 'assistant-text':
       return (
         <box key={item.id} style={{ flexDirection: 'row' }}>
-          <text fg="#98d982">{'ai    '}</text>
-          <text fg="#e0e0e0">{item.content}{item.streaming ? '▌' : ''}</text>
+          <text fg="#69f0ae">{'ai    '}</text>
+          <text fg="#ffffff">{item.content}{item.streaming ? '▌' : ''}</text>
         </box>
       )
     case 'tool-group': {
       const { group } = item
       const hasError = group.calls.some(c => c.status === 'error')
       const anyRunning = group.calls.some(c => c.status === 'running')
-      const iconFg = anyRunning ? '#ffda79' : hasError ? '#ff6b6b' : '#98d982'
+      const iconFg = anyRunning ? '#ffd740' : hasError ? '#ff6b6b' : '#69f0ae'
       const icon = anyRunning ? '⠋' : hasError ? '✗' : '✓'
       const arrow = group.collapsed ? '▶' : '▼'
       return (
@@ -35,7 +35,7 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
           </box>
           {!group.collapsed && group.calls.map(call => {
             const cIcon = call.status === 'running' ? '⠋' : call.status === 'error' ? '✗' : '✓'
-            const cFg = call.status === 'running' ? '#ffda79' : call.status === 'error' ? '#ff6b6b' : '#98d982'
+            const cFg = call.status === 'running' ? '#ffd740' : call.status === 'error' ? '#ff6b6b' : '#69f0ae'
             return (
               <box key={call.id} style={{ flexDirection: 'row' }}>
                 <text>{'          '}</text>

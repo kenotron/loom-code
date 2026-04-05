@@ -43,7 +43,8 @@ export function InputBar({ initialState, callbacks, placeholder = '▸', focused
         value={state.value}
         onInput={handleInput}
         onSubmit={handleSubmit}
-        style={{ flexGrow: 1, fg: '#ffffff' }}
+        fg="#ffffff"
+        style={{ flexGrow: 1 }}
         focused={focused !== false}
       />
       {callbacks.onVoiceToggle !== undefined && (

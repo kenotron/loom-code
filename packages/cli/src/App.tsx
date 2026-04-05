@@ -232,7 +232,7 @@ export function App() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
   return (
-    <box style={{ flexDirection: 'column', height: '100%' }}>
+    <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%' }}>
       <StatusBar state={statusState} />
       <AttentionPanel state={attentionState} />
       <box style={{ flexGrow: 1, overflow: 'hidden' }}>
@@ -242,7 +242,7 @@ export function App() {
         />
       </box>
       {isThinking && (
-        <text fg="#ffda79">{'⠋ generating · Esc to cancel'}</text>
+        <text fg="#ffd740">{'⠋ generating · Esc to cancel'}</text>
       )}
       <InputBar
         initialState={inputState}

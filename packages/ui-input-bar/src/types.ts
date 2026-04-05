@@ -30,4 +30,10 @@ export interface InputBarProps {
   callbacks: InputBarCallbacks
   /** Placeholder text shown when input is empty. Default: '▸' */
   placeholder?: string
+  /**
+   * Whether the input field should be focused (i.e. receive typed characters).
+   * Defaults to true. Pass false when another input — e.g. the command palette
+   * search box — should hold focus so typed keys don't go to both fields.
+   */
+  focused?: boolean
 }

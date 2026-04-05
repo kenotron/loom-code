@@ -18,6 +18,7 @@ import {
   openPalette,
   closePalette,
   setQuery as setPaletteQuery,
+  moveSelection,
   selectedItem,
 } from '@loom-code/ui-command-palette'
 
@@ -136,6 +137,21 @@ export function App() {
     if (key.ctrl && key.name === 'p') {
       key.preventDefault()
       setPaletteState(prev => (prev.open ? closePalette(prev) : openPalette(prev)))
+      return
+    }
+    // When palette is open: arrow keys navigate, Escape closes
+    // (key.name is lowercase: 'up', 'down', 'escape' — @opentui/core convention)
+    if (paletteState.open) {
+      if (key.name === 'up') {
+        key.preventDefault()
+        setPaletteState(prev => moveSelection(prev, 'up'))
+      } else if (key.name === 'down') {
+        key.preventDefault()
+        setPaletteState(prev => moveSelection(prev, 'down'))
+      } else if (key.name === 'escape') {
+        key.preventDefault()
+        setPaletteState(prev => closePalette(prev))
+      }
     }
   })
 
@@ -157,6 +173,7 @@ export function App() {
           onValueChange: (value: string) =>
             setInputState(prev => ({ ...prev, value })),
         }}
+        focused={!paletteState.open}
       />
       {paletteState.open && (
         <CommandPalette

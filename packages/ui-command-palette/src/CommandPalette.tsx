@@ -1,3 +1,4 @@
+import { BrightText, ColorText, resolveToken } from '@loom-code/ui-primitives'
 import type { CommandPaletteProps } from './types'
 
 const MAX_VISIBLE = 8
@@ -19,7 +20,7 @@ const MAX_VISIBLE = 8
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
  */
-export function CommandPalette({ state, onQueryChange, onExecute, textFg }: CommandPaletteProps) {
+export function CommandPalette({ state, onQueryChange, onExecute }: CommandPaletteProps) {
   if (!state.open) return null
 
   const visible = state.filteredItems.slice(0, MAX_VISIBLE)
@@ -27,7 +28,7 @@ export function CommandPalette({ state, onQueryChange, onExecute, textFg }: Comm
   return (
     <box style={{ flexDirection: 'column' }}>
       <box style={{ flexDirection: 'row' }}>
-        <text fg="#7cb9e8">{'> '}</text>
+        <ColorText token="accent.prompt">{'> '}</ColorText>
         <input
           placeholder="search commands..."
           focused
@@ -36,24 +37,19 @@ export function CommandPalette({ state, onQueryChange, onExecute, textFg }: Comm
             const item = state.filteredItems[state.selectedIndex]
             if (item) onExecute?.(item)
           }}
-          fg={textFg}
+          fg={resolveToken('text.primary').fg}
           style={{ flexGrow: 1 }}
         />
       </box>
-      <text fg="#303030">{'─'.repeat(40)}</text>
+      <ColorText token="text.dimmer">{'─'.repeat(40)}</ColorText>
       {visible.map((item, i) => {
         const isSelected = i === state.selectedIndex
         const prefix = isSelected ? '▸ ' : '  '
         const desc = item.description ? `  ${item.description}` : ''
-        return (
-          <text
-            key={item.id}
-            fg={isSelected ? textFg : '#909090'}
-            attributes={isSelected ? 1 : 0}
-          >
-            {`${prefix}${item.label}${desc}`}
-          </text>
-        )
+        const label = `${prefix}${item.label}${desc}`
+        return isSelected
+          ? <BrightText key={item.id} attributes={1}>{label}</BrightText>
+          : <ColorText key={item.id} token="text.muted">{label}</ColorText>
       })}
     </box>
   )

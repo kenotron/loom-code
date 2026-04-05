@@ -1,2 +1,6 @@
+export { resolveToken, colorDepth, themeMode } from './theme'
+export type { TokenName, ColorValue, ResolvedColor, ThemeDef, ColorDepth, ThemeMode } from './theme'
+export { ColorText } from './ColorText'
+export type { ColorTextProps } from './ColorText'
 export { BrightText } from './BrightText'
 export type { BrightTextProps } from './BrightText'

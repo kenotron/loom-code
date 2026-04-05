@@ -19,7 +19,7 @@ function iconFor(type: AttentionItemType): string {
  *   ⏳ Review changes?
  *   ℹ FYI notice
  */
-export function AttentionPanel({ state, textFg }: AttentionPanelProps) {
+export function AttentionPanel({ state }: AttentionPanelProps) {
   if (isEmpty(state)) return null
 
   const pending = pendingItems(state)
@@ -27,10 +27,10 @@ export function AttentionPanel({ state, textFg }: AttentionPanelProps) {
   return (
     <box style={{ flexDirection: 'column' }}>
       {state.intent !== null && (
-        <text fg={textFg}>▸ {state.intent}</text>
+        <BrightText>{'▸ ' + state.intent}</BrightText>
       )}
       {pending.map((item: AttentionItem) => (
-        <text key={item.id} fg={textFg}>{iconFor(item.type)} {item.message}</text>
+        <BrightText key={item.id}>{iconFor(item.type) + ' ' + item.message}</BrightText>
       ))}
     </box>
   )

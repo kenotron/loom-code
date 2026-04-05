@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { resolveToken } from '@loom-code/ui-primitives'
 import { updateValue, submitValue, toggleMic } from './state'
 import type { InputBarProps } from './types'
 
@@ -14,7 +15,7 @@ const MIC_ACTIVE_ICON = '●'
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
  */
-export function InputBar({ initialState, callbacks, placeholder = '▸', focused, textFg }: InputBarProps) {
+export function InputBar({ initialState, callbacks, placeholder = '▸', focused }: InputBarProps) {
   const [state, setState] = useState(initialState)
 
   const handleInput = useCallback((value: string) => {
@@ -38,17 +39,18 @@ export function InputBar({ initialState, callbacks, placeholder = '▸', focused
 
   return (
     <box style={{ flexDirection: 'row' }}>
-      <text fg="#7cb9e8">{placeholder} </text>
+      <text fg={resolveToken('accent.prompt').fg}>{placeholder} </text>
       <input
         value={state.value}
         onInput={handleInput}
         onSubmit={handleSubmit}
-        fg={textFg}
+        fg={resolveToken('text.primary').fg}
+        attributes={resolveToken('text.primary').attrs}
         style={{ flexGrow: 1 }}
         focused={focused !== false}
       />
       {callbacks.onVoiceToggle !== undefined && (
-        <text fg="#7cb9e8">{state.micActive ? MIC_ACTIVE_ICON : MIC_ICON}</text>
+        <text fg={resolveToken('accent.prompt').fg}>{state.micActive ? MIC_ACTIVE_ICON : MIC_ICON}</text>
       )}
     </box>
   )

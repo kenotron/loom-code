@@ -15,6 +15,4 @@ export interface AttentionState {
 export interface AttentionPanelProps {
   state: AttentionState
   onResolve?: (id: string) => void
-  /** Explicit foreground color for primary text. Omit to use terminal default (safe for non-truecolor terminals). */
-  textFg?: string
 }

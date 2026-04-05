@@ -32,6 +32,7 @@
         "@loom-code/ui-chat-history": "*",
         "@loom-code/ui-command-palette": "*",
         "@loom-code/ui-input-bar": "*",
+        "@loom-code/ui-primitives": "*",
         "@loom-code/ui-status-bar": "*",
         "@opentui/core": "*",
         "@opentui/react": "*",
@@ -145,6 +146,7 @@
       "name": "@loom-code/ui-status-bar",
       "version": "0.1.0",
       "dependencies": {
+        "@loom-code/ui-primitives": "*",
         "@opentui/core": "*",
         "@opentui/react": "*",
         "react": "*",

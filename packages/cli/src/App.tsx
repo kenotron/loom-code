@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { resolveToken } from '@loom-code/ui-primitives'
 
 // State machines
 import { createInitialInputBarState } from '@loom-code/ui-input-bar'
@@ -44,12 +45,7 @@ import { useKeyboard } from '@opentui/react'
 // explicit #ffffff maps to a dim white. In that case we pass undefined so
 // the terminal's own default foreground (always rendered at full intensity)
 // is used instead.
-const colorterm = process.env.COLORTERM?.toLowerCase()
-// 'transparent' (alpha=0) tells opentui's Zig renderer to skip emitting a fg
-// escape code, so the terminal's own default foreground renders at full intensity.
-// Without this, fg=undefined falls through to opentui's internal default of
-// RGBA(1,1,1,1) which still emits \x1b[38;2;255;255;255m — dim on Apple Terminal.
-const TEXT_FG = (colorterm === 'truecolor' || colorterm === '24bit') ? '#ffffff' : 'transparent'
+
 
 // Session + commands
 import { createSession } from './session'
@@ -246,16 +242,15 @@ export function App() {
   return (
     <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%' }}>
       <StatusBar state={statusState} />
-      <AttentionPanel state={attentionState} textFg={TEXT_FG} />
+      <AttentionPanel state={attentionState} />
       <box style={{ flexGrow: 1, overflow: 'hidden' }}>
         <ChatHistory
           state={historyState}
           onToggleGroup={id => setHistoryState(prev => toggleGroup(prev, id))}
-          textFg={TEXT_FG}
         />
       </box>
       {isThinking && (
-        <text fg="#ffd740">{'⠋ generating · Esc to cancel'}</text>
+        <text fg={resolveToken('status.running').fg}>{'⠋ generating · Esc to cancel'}</text>
       )}
       <InputBar
         initialState={inputState}
@@ -266,7 +261,6 @@ export function App() {
         }}
         placeholder={isThinking ? '⠋' : '▸'}
         focused={!paletteState.open}
-        textFg={TEXT_FG}
       />
       {paletteState.open && (
         <CommandPalette
@@ -280,7 +274,6 @@ export function App() {
             item.action()
             setPaletteState(prev => closePalette(prev))
           }}
-          textFg={TEXT_FG}
         />
       )}
     </box>

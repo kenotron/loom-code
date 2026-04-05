@@ -20,6 +20,4 @@ export interface CommandPaletteProps {
   onExecute?: (item: CommandItem) => void
   onQueryChange?: (query: string) => void
   onSelectionChange?: (index: number) => void
-  /** Explicit foreground color for primary text. Omit to use terminal default (safe for non-truecolor terminals). */
-  textFg?: string
 }

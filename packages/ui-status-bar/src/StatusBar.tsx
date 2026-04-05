@@ -1,3 +1,4 @@
+import { ColorText } from '@loom-code/ui-primitives'
 import { formatStatusLine } from './format'
 import type { StatusBarProps } from './types'
 
@@ -13,5 +14,5 @@ import type { StatusBarProps } from './types'
  * Style: dim white (attributes=2 = DIM, fg='white')
  */
 export function StatusBar({ state }: StatusBarProps) {
-  return <text fg="#505050">{formatStatusLine(state)}</text>
+  return <ColorText token="text.dim">{formatStatusLine(state)}</ColorText>
 }

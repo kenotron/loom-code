@@ -24,6 +24,7 @@
       "dependencies": {
         "@loom-code/core": "*",
         "@loom-code/provider-anthropic": "*",
+        "@loom-code/tool-tasks": "workspace:*",
         "@loom-code/ui-attention-panel": "*",
         "@loom-code/ui-chat-history": "*",
         "@loom-code/ui-command-palette": "*",
@@ -52,6 +53,13 @@
     "packages/session-store": {
       "name": "@loom-code/session-store",
       "version": "0.1.0",
+    },
+    "packages/tool-tasks": {
+      "name": "@loom-code/tool-tasks",
+      "version": "0.1.0",
+      "peerDependencies": {
+        "@loom-code/core": "workspace:*",
+      },
     },
     "packages/ui-attention-panel": {
       "name": "@loom-code/ui-attention-panel",
@@ -177,6 +185,8 @@
     "@loom-code/provider-anthropic": ["@loom-code/provider-anthropic@workspace:packages/provider-anthropic"],
 
     "@loom-code/session-store": ["@loom-code/session-store@workspace:packages/session-store"],
+
+    "@loom-code/tool-tasks": ["@loom-code/tool-tasks@workspace:packages/tool-tasks"],
 
     "@loom-code/ui-attention-panel": ["@loom-code/ui-attention-panel@workspace:packages/ui-attention-panel"],
 

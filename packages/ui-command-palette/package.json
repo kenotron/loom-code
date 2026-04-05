@@ -1,0 +1,10 @@
+{
+  "name": "@loom-code/ui-command-palette",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": { "test": "bun test", "typecheck": "bunx tsc --noEmit" },
+  "dependencies": { "@opentui/react": "*", "@opentui/core": "*", "react": "*" }
+}

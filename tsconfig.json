@@ -7,6 +7,8 @@
     { "path": "packages/ui-status-bar" },
     { "path": "packages/ui-input-bar" },
     { "path": "packages/ui-attention-panel" },
-    { "path": "packages/ui-chat-history" }
+    { "path": "packages/ui-chat-history" },
+    { "path": "packages/ui-command-palette" },
+    { "path": "packages/cli" }
   ]
 }

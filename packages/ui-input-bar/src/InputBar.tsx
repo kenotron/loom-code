@@ -40,9 +40,9 @@ export function InputBar({ initialState, callbacks, placeholder = '▸' }: Input
     <box style={{ flexDirection: 'row' }}>
       <text>{placeholder} </text>
       <input
-        value={state.value}
         onInput={handleInput}
         onSubmit={handleSubmit}
+        style={{ flexGrow: 1 }}
         focused
       />
       {callbacks.onVoiceToggle !== undefined && (

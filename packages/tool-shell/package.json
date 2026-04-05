@@ -1,0 +1,16 @@
+{
+  "name": "@loom-code/tool-shell",
+  "version": "0.1.0",
+  "description": "Shell/bash execution tools for loom-code",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@loom-code/core": "workspace:*"
+  },
+  "devDependencies": {}
+}

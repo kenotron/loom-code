@@ -27,7 +27,7 @@ export function CommandPalette({ state, onQueryChange, onExecute }: CommandPalet
   return (
     <box style={{ flexDirection: 'column' }}>
       <box style={{ flexDirection: 'row' }}>
-        <text fg="white">{'> '}</text>
+        <text fg="#7cb9e8">{'> '}</text>
         <input
           placeholder="search commands..."
           focused
@@ -36,17 +36,22 @@ export function CommandPalette({ state, onQueryChange, onExecute }: CommandPalet
             const item = state.filteredItems[state.selectedIndex]
             if (item) onExecute?.(item)
           }}
-          style={{ flexGrow: 1, fg: 'white' }}
+          style={{ flexGrow: 1, fg: '#ffffff' }}
         />
       </box>
-      <text fg="white">{'\u2500'.repeat(40)}</text>
+      <text fg="#303030">{'─'.repeat(40)}</text>
       {visible.map((item, i) => {
-        const prefix = i === state.selectedIndex ? '▸ ' : '  '
+        const isSelected = i === state.selectedIndex
+        const prefix = isSelected ? '▸ ' : '  '
         const desc = item.description ? `  ${item.description}` : ''
-        // Selected item is bold (attributes=1), others are normal white
-        const attrs = i === state.selectedIndex ? 1 : undefined
         return (
-          <text key={item.id} fg="white" attributes={attrs}>{`${prefix}${item.label}${desc}`}</text>
+          <text
+            key={item.id}
+            fg={isSelected ? '#ffffff' : '#909090'}
+            attributes={isSelected ? 1 : 0}
+          >
+            {`${prefix}${item.label}${desc}`}
+          </text>
         )
       })}
     </box>

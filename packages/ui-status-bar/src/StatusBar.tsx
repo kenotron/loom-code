@@ -13,5 +13,5 @@ import type { StatusBarProps } from './types'
  * Style: dim white (attributes=2 = DIM, fg='white')
  */
 export function StatusBar({ state }: StatusBarProps) {
-  return <text fg="white" attributes={2}>{formatStatusLine(state)}</text>
+  return <text fg="#505050">{formatStatusLine(state)}</text>
 }

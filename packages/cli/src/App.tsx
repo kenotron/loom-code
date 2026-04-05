@@ -75,7 +75,7 @@ export function App() {
   // Track in-flight tool calls so we can map name → id for onToolEnd
   const toolCallIdRef = useRef<Map<string, string>>(new Map())
 
-  // ── Submit / queue ─────────────────────────────────────────────────────────
+  // ── Submit / queue ────────────────────────────────────────────────────────
   // Guard against concurrent submits (ref avoids re-render on change)
   const isRunning = useRef(false)
 
@@ -196,29 +196,28 @@ export function App() {
     [runTurn],
   )
 
-  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useKeyboard(key => {
-    // Ctrl+P → toggle command palette
+    // Ctrl-P → toggle palette
     if (key.ctrl && key.name === 'p') {
       key.preventDefault()
-      setPaletteState(prev => (prev.open ? closePalette(prev) : openPalette(prev)))
+      setPaletteState(prev => prev.open ? closePalette(prev) : openPalette(prev))
       return
     }
 
-    // Ctrl+C: cancel running response instead of quitting; exit when idle
-    if (key.ctrl && key.name === 'c') {
-      if (isRunning.current) {
-        key.preventDefault()
-        messageQueueRef.current = [] // discard queued messages
+    // Escape: close palette OR cancel running response
+    if (key.name === 'escape') {
+      key.preventDefault()
+      if (paletteState.open) {
+        setPaletteState(prev => closePalette(prev))
+      } else if (isRunning.current) {
+        messageQueueRef.current = []
         session.cancel()
-        return
       }
-      // Idle: fall through so the renderer's exitOnCtrlC fires normally
       return
     }
 
-    // When palette is open: arrow keys navigate, Escape closes
-    // (key.name is lowercase: 'up', 'down', 'escape' — @opentui/core convention)
+    // Palette navigation (only when open)
     if (paletteState.open) {
       if (key.name === 'up') {
         key.preventDefault()
@@ -226,24 +225,12 @@ export function App() {
       } else if (key.name === 'down') {
         key.preventDefault()
         setPaletteState(prev => moveSelection(prev, 'down'))
-      } else if (key.name === 'escape') {
-        key.preventDefault()
-        setPaletteState(prev => closePalette(prev))
-      }
-      return
-    }
-
-    // Escape (palette closed): cancel running response
-    if (key.name === 'escape') {
-      if (isRunning.current) {
-        key.preventDefault()
-        messageQueueRef.current = [] // discard queued messages
-        session.cancel()
       }
     }
+    // Ctrl-C: do NOT intercept — let the process exit normally
   })
 
-  // ── Layout ─────────────────────────────────────────────────────────────────
+  // ── Layout ────────────────────────────────────────────────────────────────
   return (
     <box style={{ flexDirection: 'column', height: '100%' }}>
       <StatusBar state={statusState} />
@@ -254,6 +241,9 @@ export function App() {
           onToggleGroup={id => setHistoryState(prev => toggleGroup(prev, id))}
         />
       </box>
+      {isThinking && (
+        <text fg="#ffda79">{'⠋ generating · Esc to cancel'}</text>
+      )}
       <InputBar
         initialState={inputState}
         callbacks={{

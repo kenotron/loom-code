@@ -38,16 +38,16 @@ export function InputBar({ initialState, callbacks, placeholder = '▸', focused
 
   return (
     <box style={{ flexDirection: 'row' }}>
-      <text fg="white">{placeholder} </text>
+      <text fg="#7cb9e8">{placeholder} </text>
       <input
         value={state.value}
         onInput={handleInput}
         onSubmit={handleSubmit}
-        style={{ flexGrow: 1, fg: 'white' }}
+        style={{ flexGrow: 1, fg: '#ffffff' }}
         focused={focused !== false}
       />
       {callbacks.onVoiceToggle !== undefined && (
-        <text fg="white">{state.micActive ? MIC_ACTIVE_ICON : MIC_ICON}</text>
+        <text fg="#7cb9e8">{state.micActive ? MIC_ACTIVE_ICON : MIC_ICON}</text>
       )}
     </box>
   )

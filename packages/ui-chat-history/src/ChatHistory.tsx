@@ -1,55 +1,63 @@
-import type { ChatHistoryProps, DisplayItem, ToolGroup, ToolCallRow, ToolStatus } from './types'
+import type { ChatHistoryProps, DisplayItem } from './types'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function groupStatusIcon(calls: ToolCallRow[]): string {
-  if (calls.some(c => c.status === 'running')) return '⠋'
-  if (calls.some(c => c.status === 'error')) return '✗'
-  return '✓'
-}
-
-function callStatusIcon(status: ToolStatus): string {
-  if (status === 'running') return '⠋'
-  if (status === 'error') return '✗'
-  return '✓'
-}
-
-function renderToolGroup(group: ToolGroup, onToggle?: () => void): string {
-  const icon = groupStatusIcon(group.calls)
-  const arrow = group.collapsed ? '▶' : '▼'
-  if (group.collapsed) {
-    return `${icon} ${group.toolName}  ${group.calls.length} calls  ${arrow}`
-  }
-  const header = `${icon} ${group.toolName}  ${group.calls.length} calls  ${arrow}`
-  const rows = group.calls.map(c => `  ${callStatusIcon(c.status)} ${c.toolName}`).join('\n')
-  return `${header}\n${rows}`
-}
-
-function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void): string {
+function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
   switch (item.type) {
     case 'user-message':
-      return `You   ${item.message.content}`
+      return (
+        <box key={item.id} style={{ flexDirection: 'row' }}>
+          <text fg="#7cb9e8">{'you   '}</text>
+          <text fg="#ffffff" attributes={1}>{item.message.content}</text>
+        </box>
+      )
     case 'assistant-text':
-      return `AI    ${item.content}${item.streaming ? '▌' : ''}`
-    case 'tool-group':
-      return renderToolGroup(item.group, onToggleGroup ? () => onToggleGroup(item.group.id) : undefined)
+      return (
+        <box key={item.id} style={{ flexDirection: 'row' }}>
+          <text fg="#98d982">{'ai    '}</text>
+          <text fg="#e0e0e0">{item.content}{item.streaming ? '▌' : ''}</text>
+        </box>
+      )
+    case 'tool-group': {
+      const { group } = item
+      const hasError = group.calls.some(c => c.status === 'error')
+      const anyRunning = group.calls.some(c => c.status === 'running')
+      const iconFg = anyRunning ? '#ffda79' : hasError ? '#ff6b6b' : '#98d982'
+      const icon = anyRunning ? '⠋' : hasError ? '✗' : '✓'
+      const arrow = group.collapsed ? '▶' : '▼'
+      return (
+        <box key={item.id} style={{ flexDirection: 'column' }}>
+          <box style={{ flexDirection: 'row' }}>
+            <text>{'        '}</text>
+            <text fg={iconFg}>{icon} </text>
+            <text fg="#909090">{group.toolName}  {group.calls.length} {group.calls.length === 1 ? 'call' : 'calls'}  </text>
+            <text fg="#505050">{arrow}</text>
+          </box>
+          {!group.collapsed && group.calls.map(call => {
+            const cIcon = call.status === 'running' ? '⠋' : call.status === 'error' ? '✗' : '✓'
+            const cFg = call.status === 'running' ? '#ffda79' : call.status === 'error' ? '#ff6b6b' : '#98d982'
+            return (
+              <box key={call.id} style={{ flexDirection: 'row' }}>
+                <text>{'          '}</text>
+                <text fg={cFg}>{cIcon} </text>
+                <text fg="#909090">{call.toolName}{call.error ? `  ${call.error}` : ''}</text>
+              </box>
+            )
+          })}
+        </box>
+      )
+    }
     case 'thinking': {
       const secs = Math.round(item.durationMs / 1000)
       const arrow = item.collapsed ? '▶' : '▼'
-      return `◎ thought for ${secs}s  ${arrow}`
+      return (
+        <box key={item.id} style={{ flexDirection: 'row' }}>
+          <text>{'        '}</text>
+          <text fg="#505050">◎ thought for {secs}s  {arrow}</text>
+        </box>
+      )
     }
   }
-}
-
-/**
- * Returns fg/attributes props for a given item type.
- * - user-message: bold white (attributes=1 = BOLD)
- * - assistant-text: normal white
- * - tool-group / thinking: normal white
- */
-function itemStyle(item: DisplayItem): { fg: string; attributes?: number } {
-  if (item.type === 'user-message') return { fg: 'white', attributes: 1 }
-  return { fg: 'white' }
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -57,7 +65,7 @@ function itemStyle(item: DisplayItem): { fg: string; attributes?: number } {
 /**
  * ChatHistory — thin display component for the conversation history.
  *
- * Renders each DisplayItem as text lines inside a vertical box.
+ * Renders each DisplayItem as colored boxes inside a vertical scrollbox.
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
  *
@@ -67,22 +75,15 @@ function itemStyle(item: DisplayItem): { fg: string; attributes?: number } {
 export function ChatHistory({ state, onToggleGroup, onToggleThinking }: ChatHistoryProps) {
   if (state.items.length === 0) {
     return (
-      <scrollbox style={{ flexDirection: 'column' }}>
-        <text fg="white">  Type a message to start — Ctrl-P for commands</text>
+      <scrollbox style={{ flexDirection: 'column' }} stickyScroll={true} stickyStart="bottom">
+        <text fg="#303030">{'  Type a message · Ctrl-P for commands · Esc cancels'}</text>
       </scrollbox>
     )
   }
 
   return (
     <scrollbox style={{ flexDirection: 'column' }} stickyScroll={true} stickyStart="bottom">
-      {state.items.map((item: DisplayItem) => {
-        const { fg, attributes } = itemStyle(item)
-        return (
-          <text key={item.id} fg={fg} attributes={attributes}>
-            {renderItem(item, onToggleGroup)}
-          </text>
-        )
-      })}
+      {state.items.map(item => renderItem(item, onToggleGroup))}
     </scrollbox>
   )
 }

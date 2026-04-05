@@ -5,6 +5,14 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "scripts": { "test": "bun test", "typecheck": "bunx tsc --noEmit" },
-  "dependencies": { "@opentui/react": "*", "@opentui/core": "*", "react": "*" }
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "@opentui/react": "*",
+    "@opentui/core": "*",
+    "react": "*",
+    "@loom-code/ui-primitives": "*"
+  }
 }

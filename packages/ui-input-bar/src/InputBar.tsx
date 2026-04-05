@@ -14,7 +14,7 @@ const MIC_ACTIVE_ICON = '●'
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
  */
-export function InputBar({ initialState, callbacks, placeholder = '▸', focused }: InputBarProps) {
+export function InputBar({ initialState, callbacks, placeholder = '▸', focused, textFg }: InputBarProps) {
   const [state, setState] = useState(initialState)
 
   const handleInput = useCallback((value: string) => {
@@ -43,7 +43,7 @@ export function InputBar({ initialState, callbacks, placeholder = '▸', focused
         value={state.value}
         onInput={handleInput}
         onSubmit={handleSubmit}
-        fg="#ffffff"
+        fg={textFg}
         style={{ flexGrow: 1 }}
         focused={focused !== false}
       />

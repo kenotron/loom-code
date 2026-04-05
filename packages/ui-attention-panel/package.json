@@ -12,6 +12,7 @@
   "dependencies": {
     "@opentui/react": "*",
     "@opentui/core": "*",
-    "react": "*"
+    "react": "*",
+    "@loom-code/ui-primitives": "*"
   }
 }

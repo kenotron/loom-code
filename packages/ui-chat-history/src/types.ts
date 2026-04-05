@@ -40,4 +40,6 @@ export interface ChatHistoryProps {
   state: ChatHistoryState
   onToggleGroup?: (groupId: string) => void
   onToggleThinking?: (itemId: string) => void
+  /** Explicit foreground color for primary text. Omit to use terminal default (safe for non-truecolor terminals). */
+  textFg?: string
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@loom-code/ui-input-bar",
+  "name": "@loom-code/ui-primitives",
   "version": "0.1.0",
   "private": false,
   "type": "module",
@@ -12,7 +12,6 @@
   "dependencies": {
     "@opentui/react": "*",
     "@opentui/core": "*",
-    "react": "*",
-    "@loom-code/ui-primitives": "*"
+    "react": "*"
   }
 }

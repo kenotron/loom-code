@@ -39,6 +39,18 @@ import { CommandPalette } from '@loom-code/ui-command-palette'
 // Keyboard
 import { useKeyboard } from '@opentui/react'
 
+// Detect terminal color capability once at startup.
+// Without COLORTERM=truecolor, opentui falls back to 256-color mode where
+// explicit #ffffff maps to a dim white. In that case we pass undefined so
+// the terminal's own default foreground (always rendered at full intensity)
+// is used instead.
+const colorterm = process.env.COLORTERM?.toLowerCase()
+// 'transparent' (alpha=0) tells opentui's Zig renderer to skip emitting a fg
+// escape code, so the terminal's own default foreground renders at full intensity.
+// Without this, fg=undefined falls through to opentui's internal default of
+// RGBA(1,1,1,1) which still emits \x1b[38;2;255;255;255m — dim on Apple Terminal.
+const TEXT_FG = (colorterm === 'truecolor' || colorterm === '24bit') ? '#ffffff' : 'transparent'
+
 // Session + commands
 import { createSession } from './session'
 import { createDefaultCommands } from './commands'
@@ -234,11 +246,12 @@ export function App() {
   return (
     <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%' }}>
       <StatusBar state={statusState} />
-      <AttentionPanel state={attentionState} />
+      <AttentionPanel state={attentionState} textFg={TEXT_FG} />
       <box style={{ flexGrow: 1, overflow: 'hidden' }}>
         <ChatHistory
           state={historyState}
           onToggleGroup={id => setHistoryState(prev => toggleGroup(prev, id))}
+          textFg={TEXT_FG}
         />
       </box>
       {isThinking && (
@@ -253,6 +266,7 @@ export function App() {
         }}
         placeholder={isThinking ? '⠋' : '▸'}
         focused={!paletteState.open}
+        textFg={TEXT_FG}
       />
       {paletteState.open && (
         <CommandPalette
@@ -266,6 +280,7 @@ export function App() {
             item.action()
             setPaletteState(prev => closePalette(prev))
           }}
+          textFg={TEXT_FG}
         />
       )}
     </box>

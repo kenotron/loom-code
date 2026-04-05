@@ -19,7 +19,7 @@ const MAX_VISIBLE = 8
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
  */
-export function CommandPalette({ state, onQueryChange, onExecute }: CommandPaletteProps) {
+export function CommandPalette({ state, onQueryChange, onExecute, textFg }: CommandPaletteProps) {
   if (!state.open) return null
 
   const visible = state.filteredItems.slice(0, MAX_VISIBLE)
@@ -36,7 +36,7 @@ export function CommandPalette({ state, onQueryChange, onExecute }: CommandPalet
             const item = state.filteredItems[state.selectedIndex]
             if (item) onExecute?.(item)
           }}
-          fg="#ffffff"
+          fg={textFg}
           style={{ flexGrow: 1 }}
         />
       </box>
@@ -48,7 +48,7 @@ export function CommandPalette({ state, onQueryChange, onExecute }: CommandPalet
         return (
           <text
             key={item.id}
-            fg={isSelected ? '#ffffff' : '#909090'}
+            fg={isSelected ? textFg : '#909090'}
             attributes={isSelected ? 1 : 0}
           >
             {`${prefix}${item.label}${desc}`}

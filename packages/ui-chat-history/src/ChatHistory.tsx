@@ -1,3 +1,4 @@
+import { BrightText } from '@loom-code/ui-primitives'
 import type { ChatHistoryProps, DisplayItem } from './types'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -8,14 +9,14 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
       return (
         <box key={item.id} style={{ flexDirection: 'row' }}>
           <text fg="#4fc3f7">{'you   '}</text>
-          <text fg="#ffffff" attributes={1}>{item.message.content}</text>
+          <BrightText attributes={1}>{item.message.content}</BrightText>
         </box>
       )
     case 'assistant-text':
       return (
         <box key={item.id} style={{ flexDirection: 'row' }}>
           <text fg="#69f0ae">{'ai    '}</text>
-          <text fg="#ffffff">{item.content}{item.streaming ? '▌' : ''}</text>
+          <BrightText>{item.content + (item.streaming ? '▌' : '')}</BrightText>
         </box>
       )
     case 'tool-group': {
@@ -72,7 +73,7 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
  * Interaction note: onToggleGroup / onToggleThinking are props for the parent
  * to wire up via keyboard/mouse events at the application layer.
  */
-export function ChatHistory({ state, onToggleGroup, onToggleThinking }: ChatHistoryProps) {
+export function ChatHistory({ state, onToggleGroup, onToggleThinking, textFg }: ChatHistoryProps) {
   if (state.items.length === 0) {
     return (
       <scrollbox style={{ flexDirection: 'column' }} stickyScroll={true} stickyStart="bottom">
@@ -83,7 +84,7 @@ export function ChatHistory({ state, onToggleGroup, onToggleThinking }: ChatHist
 
   return (
     <scrollbox style={{ flexDirection: 'column' }} stickyScroll={true} stickyStart="bottom">
-      {state.items.map(item => renderItem(item, onToggleGroup))}
+      {state.items.map(item => renderItem(item, textFg, onToggleGroup))}
     </scrollbox>
   )
 }

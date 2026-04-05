@@ -36,4 +36,6 @@ export interface InputBarProps {
    * search box — should hold focus so typed keys don't go to both fields.
    */
   focused?: boolean
+  /** Explicit foreground color for input text. Omit to use terminal default (safe for non-truecolor terminals). */
+  textFg?: string
 }

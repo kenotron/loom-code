@@ -1,0 +1,11 @@
+{
+  "name": "@loom-code/tool-skills",
+  "version": "0.1.0",
+  "description": "Skills runner for loom-code (agentskills.io spec)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": { "test": "bun test" },
+  "dependencies": { "js-yaml": "^4.1.0" },
+  "peerDependencies": { "@loom-code/core": "workspace:*" },
+  "devDependencies": { "@types/js-yaml": "^4.0.0", "@loom-code/core": "workspace:*" }
+}

@@ -8,6 +8,7 @@
   "scripts": { "start": "bun run src/index.ts", "test": "bun test", "typecheck": "bunx tsc --noEmit" },
   "dependencies": {
     "@loom-code/core": "*", "@loom-code/provider-anthropic": "*",
+    "@loom-code/tool-shell": "workspace:*",
     "@loom-code/ui-status-bar": "*", "@loom-code/ui-attention-panel": "*",
     "@loom-code/ui-chat-history": "*", "@loom-code/ui-input-bar": "*",
     "@loom-code/ui-command-palette": "*",

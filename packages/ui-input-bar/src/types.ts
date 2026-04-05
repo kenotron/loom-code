@@ -36,4 +36,8 @@ export interface InputBarProps {
    * search box — should hold focus so typed keys don't go to both fields.
    */
   focused?: boolean
+  /** Terminal width used to draw the separator line. Default: 80. */
+  termWidth?: number
+  /** When true, show a thinking/spinner indicator instead of the prompt. */
+  isThinking?: boolean
 }

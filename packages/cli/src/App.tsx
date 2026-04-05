@@ -1,6 +1,4 @@
 import { useState, useCallback, useRef } from 'react'
-import { resolveToken } from '@loom-code/ui-primitives'
-
 // State machines
 import { createInitialInputBarState } from '@loom-code/ui-input-bar'
 import { createInitialAttentionState, updateIntent } from '@loom-code/ui-attention-panel'
@@ -37,8 +35,8 @@ import { ChatHistory } from '@loom-code/ui-chat-history'
 import { InputBar } from '@loom-code/ui-input-bar'
 import { CommandPalette } from '@loom-code/ui-command-palette'
 
-// Keyboard
-import { useKeyboard } from '@opentui/react'
+// Keyboard + terminal dimensions
+import { useKeyboard, useTerminalDimensions } from '@opentui/react'
 
 // Detect terminal color capability once at startup.
 // Without COLORTERM=truecolor, opentui falls back to 256-color mode where
@@ -52,6 +50,8 @@ import { createSession } from './session'
 import { createDefaultCommands } from './commands'
 
 export function App() {
+  const { width: termWidth, height: termHeight } = useTerminalDimensions()
+
   // ── Core state ────────────────────────────────────────────────────────────
   const [session] = useState(() => createSession())
 
@@ -240,18 +240,14 @@ export function App() {
 
   // ── Layout ────────────────────────────────────────────────────────────────
   return (
-    <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%' }}>
-      <StatusBar state={statusState} />
-      <AttentionPanel state={attentionState} />
-      <box style={{ flexGrow: 1, overflow: 'hidden' }}>
+    <box bg="#0a0a0a" style={{ flexDirection: 'column' }}>
+      <box style={{ maxHeight: termHeight - 4, overflow: 'hidden' }}>
+        <AttentionPanel state={attentionState} />
         <ChatHistory
           state={historyState}
           onToggleGroup={id => setHistoryState(prev => toggleGroup(prev, id))}
         />
       </box>
-      {isThinking && (
-        <text fg={resolveToken('status.running').fg}>{'⠋ generating · Esc to cancel'}</text>
-      )}
       <InputBar
         initialState={inputState}
         callbacks={{
@@ -259,9 +255,11 @@ export function App() {
           onValueChange: (value: string) =>
             setInputState(prev => ({ ...prev, value })),
         }}
-        placeholder={isThinking ? '⠋' : '▸'}
         focused={!paletteState.open}
+        termWidth={termWidth}
+        isThinking={isThinking}
       />
+      <StatusBar state={statusState} />
       {paletteState.open && (
         <CommandPalette
           state={paletteState}

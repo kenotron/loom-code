@@ -7,15 +7,16 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
   switch (item.type) {
     case 'user-message':
       return (
-        <box key={item.id} style={{ flexDirection: 'row' }}>
-          <ColorText token="label.user">{'you   '}</ColorText>
+        <box key={item.id} bg="#1e1e1e" style={{ flexDirection: 'row' }}>
+          <text>{'  '}</text>
           <BrightText attributes={1}>{item.message.content}</BrightText>
+          <text>{'  '}</text>
         </box>
       )
     case 'assistant-text':
       return (
-        <box key={item.id} style={{ flexDirection: 'row' }}>
-          <ColorText token="label.ai">{'ai    '}</ColorText>
+        <box key={item.id} style={{ flexDirection: 'column' }}>
+          <text>{' '}</text>
           <BrightText>{item.content + (item.streaming ? '▌' : '')}</BrightText>
         </box>
       )
@@ -29,7 +30,7 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
       return (
         <box key={item.id} style={{ flexDirection: 'column' }}>
           <box style={{ flexDirection: 'row' }}>
-            <text>{'        '}</text>
+            <text>{'  '}</text>
             <ColorText token={iconColor}>{icon + ' '}</ColorText>
             <ColorText token="text.muted">{group.toolName + '  ' + group.calls.length + ' ' + (group.calls.length === 1 ? 'call' : 'calls') + '  '}</ColorText>
             <ColorText token="text.dim">{arrow}</ColorText>
@@ -39,7 +40,7 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
             const cColor = call.status === 'running' ? 'status.running' : call.status === 'error' ? 'status.error' : 'status.success'
             return (
               <box key={call.id} style={{ flexDirection: 'row' }}>
-                <text>{'          '}</text>
+                <text>{'    '}</text>
                 <ColorText token={cColor}>{cIcon + ' '}</ColorText>
                 <ColorText token="text.muted">{call.toolName + (call.error ? '  ' + call.error : '')}</ColorText>
               </box>
@@ -53,7 +54,7 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
       const arrow = item.collapsed ? '▶' : '▼'
       return (
         <box key={item.id} style={{ flexDirection: 'row' }}>
-          <text>{'        '}</text>
+          <text>{'  '}</text>
           <ColorText token="text.dim">{'◎ thought for ' + secs + 's  ' + arrow}</ColorText>
         </box>
       )

@@ -14,5 +14,10 @@ import type { StatusBarProps } from './types'
  * Style: dim white (attributes=2 = DIM, fg='white')
  */
 export function StatusBar({ state }: StatusBarProps) {
-  return <ColorText token="text.dim">{formatStatusLine(state)}</ColorText>
+  return (
+    <box bg="#111111" style={{ flexDirection: 'row' }}>
+      <text>{'  '}</text>
+      <ColorText token="text.dim">{formatStatusLine(state)}</ColorText>
+    </box>
+  )
 }

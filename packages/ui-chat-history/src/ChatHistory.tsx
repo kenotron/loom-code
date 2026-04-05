@@ -54,11 +54,19 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void): st
  * to wire up via keyboard/mouse events at the application layer.
  */
 export function ChatHistory({ state, onToggleGroup, onToggleThinking }: ChatHistoryProps) {
+  if (state.items.length === 0) {
+    return (
+      <scrollbox style={{ flexDirection: 'column' }}>
+        <text>  Type a message to start — Ctrl-P for commands</text>
+      </scrollbox>
+    )
+  }
+
   return (
-    <box style={{ flexDirection: 'column' }}>
+    <scrollbox style={{ flexDirection: 'column' }} stickyScroll={true} stickyStart="bottom">
       {state.items.map((item: DisplayItem) => (
         <text key={item.id}>{renderItem(item, onToggleGroup)}</text>
       ))}
-    </box>
+    </scrollbox>
   )
 }

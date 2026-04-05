@@ -76,9 +76,17 @@ export function App() {
   const toolCallIdRef = useRef<Map<string, string>>(new Map())
 
   // ── Submit handler ────────────────────────────────────────────
+  // Guard against concurrent submits (ref avoids re-render on change)
+  const isRunning = useRef(false)
+
+  // Visual indicator while waiting for first token
+  const [isThinking, setIsThinking] = useState(false)
+
   const handleSubmit = useCallback(
     async (text: string) => {
-      if (!text.trim()) return
+      if (!text.trim() || isRunning.current) return
+
+      isRunning.current = true
 
       // Show user message immediately
       const msgId = crypto.randomUUID()
@@ -91,9 +99,16 @@ export function App() {
       // Update attention panel intent
       setAttentionState(prev => updateIntent(prev, text))
 
+      setIsThinking(true)
+      let firstToken = true
+
       try {
         await session.runTurn(text, {
           onToken: (token: string) => {
+            if (firstToken) {
+              setIsThinking(false)
+              firstToken = false
+            }
             setHistoryState(prev => appendToken(prev, token))
             setStatusState(prev => ({
               ...prev,
@@ -125,6 +140,8 @@ export function App() {
         const errMsg = err instanceof Error ? err.message : String(err)
         setHistoryState(prev => appendToken(prev, `\n[error: ${errMsg}]`))
       } finally {
+        isRunning.current = false
+        setIsThinking(false)
         setHistoryState(prev => finalizeStream(prev))
       }
     },
@@ -173,6 +190,7 @@ export function App() {
           onValueChange: (value: string) =>
             setInputState(prev => ({ ...prev, value })),
         }}
+        placeholder={isThinking ? '⠋' : '▸'}
         focused={!paletteState.open}
       />
       {paletteState.open && (

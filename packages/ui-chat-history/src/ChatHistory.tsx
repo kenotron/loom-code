@@ -41,6 +41,17 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void): st
   }
 }
 
+/**
+ * Returns fg/attributes props for a given item type.
+ * - user-message: bold white (attributes=1 = BOLD)
+ * - assistant-text: normal white
+ * - tool-group / thinking: normal white
+ */
+function itemStyle(item: DisplayItem): { fg: string; attributes?: number } {
+  if (item.type === 'user-message') return { fg: 'white', attributes: 1 }
+  return { fg: 'white' }
+}
+
 // ── component ─────────────────────────────────────────────────────────────────
 
 /**
@@ -57,16 +68,21 @@ export function ChatHistory({ state, onToggleGroup, onToggleThinking }: ChatHist
   if (state.items.length === 0) {
     return (
       <scrollbox style={{ flexDirection: 'column' }}>
-        <text>  Type a message to start — Ctrl-P for commands</text>
+        <text fg="white">  Type a message to start — Ctrl-P for commands</text>
       </scrollbox>
     )
   }
 
   return (
     <scrollbox style={{ flexDirection: 'column' }} stickyScroll={true} stickyStart="bottom">
-      {state.items.map((item: DisplayItem) => (
-        <text key={item.id}>{renderItem(item, onToggleGroup)}</text>
-      ))}
+      {state.items.map((item: DisplayItem) => {
+        const { fg, attributes } = itemStyle(item)
+        return (
+          <text key={item.id} fg={fg} attributes={attributes}>
+            {renderItem(item, onToggleGroup)}
+          </text>
+        )
+      })}
     </scrollbox>
   )
 }

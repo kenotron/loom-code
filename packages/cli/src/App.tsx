@@ -44,7 +44,7 @@ import { createSession } from './session'
 import { createDefaultCommands } from './commands'
 
 export function App() {
-  // ── Core state ────────────────────────────────────────────────
+  // ── Core state ────────────────────────────────────────────────────────────
   const [session] = useState(() => createSession())
 
   const [statusState, setStatusState] = useState<StatusBarState>({
@@ -75,22 +75,38 @@ export function App() {
   // Track in-flight tool calls so we can map name → id for onToolEnd
   const toolCallIdRef = useRef<Map<string, string>>(new Map())
 
-  // ── Submit handler ────────────────────────────────────────────
+  // ── Submit / queue ─────────────────────────────────────────────────────────
   // Guard against concurrent submits (ref avoids re-render on change)
   const isRunning = useRef(false)
 
   // Visual indicator while waiting for first token
   const [isThinking, setIsThinking] = useState(false)
 
-  const handleSubmit = useCallback(
-    async (text: string) => {
-      if (!text.trim() || isRunning.current) return
+  // Queue for messages submitted while AI is running
+  const messageQueueRef = useRef<string[]>([])
 
+  // Ref kept in sync with the latest runTurn so the queue processor
+  // always gets the non-stale version without a circular useCallback dep.
+  const runTurnRef = useRef<(text: string, skipUserMessage?: boolean) => Promise<void>>(
+    async () => {},
+  )
+
+  /**
+   * Core turn executor. Shows the user message (unless already shown when
+   * queued), starts the stream, and processes the next queued message when done.
+   *
+   * @param text            The prompt text to send.
+   * @param skipUserMessage When true, the user message was already appended to
+   *                        history at queue time — don't append it again.
+   */
+  const runTurn = useCallback(
+    async (text: string, skipUserMessage = false) => {
       isRunning.current = true
 
-      // Show user message immediately
-      const msgId = crypto.randomUUID()
-      setHistoryState(prev => appendUserMessage(prev, msgId, text))
+      if (!skipUserMessage) {
+        const msgId = crypto.randomUUID()
+        setHistoryState(prev => appendUserMessage(prev, msgId, text))
+      }
 
       // Start assistant stream
       const streamId = crypto.randomUUID()
@@ -137,18 +153,50 @@ export function App() {
           },
         })
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err)
-        setHistoryState(prev => appendToken(prev, `\n[error: ${errMsg}]`))
+        // Don't surface an error if the turn was intentionally cancelled
+        if (!session.isCancelled) {
+          const errMsg = err instanceof Error ? err.message : String(err)
+          setHistoryState(prev => appendToken(prev, `\n[error: ${errMsg}]`))
+        }
       } finally {
         isRunning.current = false
         setIsThinking(false)
         setHistoryState(prev => finalizeStream(prev))
+
+        // Process the next queued message (if any). Use the ref so we always
+        // get the current version of runTurn even after re-renders.
+        const next = messageQueueRef.current[0]
+        messageQueueRef.current = messageQueueRef.current.slice(1)
+        if (next) {
+          // The queued message was already appended to history at queue time.
+          setTimeout(() => runTurnRef.current(next, true), 50)
+        }
       }
     },
     [session],
   )
 
-  // ── Keyboard shortcuts ────────────────────────────────────────
+  // Keep ref in sync so queue processing never captures a stale closure.
+  runTurnRef.current = runTurn
+
+  const handleSubmit = useCallback(
+    async (text: string) => {
+      if (!text.trim()) return
+
+      // If already running, enqueue and show the message immediately
+      if (isRunning.current) {
+        const queuedMsgId = crypto.randomUUID()
+        setHistoryState(prev => appendUserMessage(prev, queuedMsgId, text))
+        messageQueueRef.current = [...messageQueueRef.current, text]
+        return
+      }
+
+      await runTurn(text)
+    },
+    [runTurn],
+  )
+
+  // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   useKeyboard(key => {
     // Ctrl+P → toggle command palette
     if (key.ctrl && key.name === 'p') {
@@ -156,6 +204,19 @@ export function App() {
       setPaletteState(prev => (prev.open ? closePalette(prev) : openPalette(prev)))
       return
     }
+
+    // Ctrl+C: cancel running response instead of quitting; exit when idle
+    if (key.ctrl && key.name === 'c') {
+      if (isRunning.current) {
+        key.preventDefault()
+        messageQueueRef.current = [] // discard queued messages
+        session.cancel()
+        return
+      }
+      // Idle: fall through so the renderer's exitOnCtrlC fires normally
+      return
+    }
+
     // When palette is open: arrow keys navigate, Escape closes
     // (key.name is lowercase: 'up', 'down', 'escape' — @opentui/core convention)
     if (paletteState.open) {
@@ -169,10 +230,20 @@ export function App() {
         key.preventDefault()
         setPaletteState(prev => closePalette(prev))
       }
+      return
+    }
+
+    // Escape (palette closed): cancel running response
+    if (key.name === 'escape') {
+      if (isRunning.current) {
+        key.preventDefault()
+        messageQueueRef.current = [] // discard queued messages
+        session.cancel()
+      }
     }
   })
 
-  // ── Layout ────────────────────────────────────────────────────
+  // ── Layout ─────────────────────────────────────────────────────────────────
   return (
     <box style={{ flexDirection: 'column', height: '100%' }}>
       <StatusBar state={statusState} />

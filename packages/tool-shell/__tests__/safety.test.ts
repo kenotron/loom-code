@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test'
 import { isDangerous, BLOCKED_PATTERNS } from '../src/safety'
+import { safetyHook } from '../src/hooks/safety-hook'
 
 describe('BLOCKED_PATTERNS', () => {
   it('exports a non-empty array of patterns', () => {
@@ -68,5 +69,43 @@ describe('isDangerous()', () => {
 
   it('allows bun test', () => {
     expect(isDangerous('bun test')).toBe(false)
+  })
+})
+
+/**
+ * Tests for the safety hook handler return format.
+ *
+ * REGRESSION GUARD: The Rust kernel's HookAction has
+ * `#[serde(rename_all = "snake_case")]`. Handlers MUST return snake_case
+ * action values ('continue', 'deny') or the kernel fails closed with
+ * "Hook handler returned invalid response" — blocking every tool call.
+ */
+describe('safetyHook handler — kernel contract', () => {
+  function call(toolName: string, input: Record<string, unknown>): { action: string; reason?: string } {
+    const raw = safetyHook.handler('tool:pre', JSON.stringify({ tool_name: toolName, input }))
+    return JSON.parse(raw as string) as { action: string; reason?: string }
+  }
+
+  it('returns snake_case "continue" for filesystem tools (not "Continue")', () => {
+    expect(call('list', { path: '/' }).action).toBe('continue')
+    expect(call('read_file', { path: '/foo' }).action).toBe('continue')
+    expect(call('glob', { pattern: '**/*.ts' }).action).toBe('continue')
+  })
+
+  it('returns snake_case "continue" for safe shell commands', () => {
+    expect(call('run_command', { command: 'ls -la' }).action).toBe('continue')
+    expect(call('run_command', { command: 'git status' }).action).toBe('continue')
+    expect(call('run_command', { command: 'bun test' }).action).toBe('continue')
+  })
+
+  it('returns snake_case "deny" for dangerous shell commands (not "Deny")', () => {
+    expect(call('run_command', { command: 'rm -rf /' }).action).toBe('deny')
+    expect(call('run_command', { command: ':(){ :|:& };:' }).action).toBe('deny')
+  })
+
+  it('return values are valid JSON strings (not plain objects)', () => {
+    const raw = safetyHook.handler('tool:pre', JSON.stringify({ tool_name: 'list', input: {} }))
+    expect(typeof raw).toBe('string')
+    expect(() => JSON.parse(raw as string)).not.toThrow()
   })
 })

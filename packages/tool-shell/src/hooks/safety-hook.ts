@@ -12,10 +12,17 @@ import { isDangerous } from '../safety'
  *
  * The amplifier-core Rust kernel calls registered handlers with two string
  * arguments: `(event: string, dataJson: string)`. The handler MUST return a
- * JSON-serialised string matching the `JsHookResult` shape, e.g.
- * `'{"action":"Continue"}'`. Returning a plain object causes a napi-rs type
- * conversion panic ("failed to convert js value Object … to Rust string").
- * Action values are PascalCase: `'Continue'` (allow) or `'Deny'` (block).
+ * JSON-serialised string, e.g. `'{"action":"continue"}'`.
+ * Returning a plain object causes a napi-rs type conversion panic.
+ *
+ * IMPORTANT: Action values MUST be snake_case. The Rust HookAction enum has
+ * `#[serde(rename_all = "snake_case")]`, so use `'continue'` and `'deny'`
+ * (lowercase). PascalCase ('Continue' / 'Deny') fails serde_json::from_str
+ * and causes the kernel to block every tool call with "invalid response".
+ *
+ * The emit() OUTPUT coming back to JS is PascalCase (via napi-rs enum →
+ * JS string). So loop.ts correctly checks `pre.action === 'Deny'` on output,
+ * while this handler returns `'deny'` as input to the kernel.
  */
 export const safetyHook: LoomHookHandler = {
   event: 'tool:pre',
@@ -30,7 +37,7 @@ export const safetyHook: LoomHookHandler = {
         d = JSON.parse(dataJson) as typeof d
       } catch {
         // Malformed payload — fail open so non-shell tools are never blocked
-        return JSON.stringify({ action: 'Continue' })
+        return JSON.stringify({ action: 'continue' })
       }
     }
 
@@ -39,7 +46,7 @@ export const safetyHook: LoomHookHandler = {
       d.tool_name !== 'run_command' &&
       d.tool_name !== 'run_remote_command'
     ) {
-      return JSON.stringify({ action: 'Continue' })
+      return JSON.stringify({ action: 'continue' })
     }
 
     // Extract command from input (input may be a string or parsed object)
@@ -59,11 +66,11 @@ export const safetyHook: LoomHookHandler = {
 
     if (command !== undefined && isDangerous(command)) {
       return JSON.stringify({
-        action: 'Deny',
+        action: 'deny',
         reason: `Command blocked by safety guard: "${command}" matches a dangerous pattern (e.g. rm -rf /, fork bomb, dd if=/dev/zero, mkfs).`,
       })
     }
 
-    return JSON.stringify({ action: 'Continue' })
+    return JSON.stringify({ action: 'continue' })
   },
 }

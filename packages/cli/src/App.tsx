@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 // State machines
 import { createInitialInputBarState } from '@loom-code/ui-input-bar'
 import { createInitialAttentionState, updateIntent } from '@loom-code/ui-attention-panel'
@@ -35,8 +35,8 @@ import { ChatHistory } from '@loom-code/ui-chat-history'
 import { InputBar } from '@loom-code/ui-input-bar'
 import { CommandPalette } from '@loom-code/ui-command-palette'
 
-// Keyboard + terminal dimensions
-import { useKeyboard, useTerminalDimensions } from '@opentui/react'
+// Keyboard + terminal dimensions + renderer access
+import { useKeyboard, useTerminalDimensions, useAppContext } from '@opentui/react'
 
 // Detect terminal color capability once at startup.
 // Without COLORTERM=truecolor, opentui falls back to 256-color mode where
@@ -49,8 +49,12 @@ import { useKeyboard, useTerminalDimensions } from '@opentui/react'
 import { createSession } from './session'
 import { createDefaultCommands } from './commands'
 
+// Rows reserved for InputBar (3) + StatusBar (1)
+const CHROME_ROWS = 4
+
 export function App() {
   const { width: termWidth, height: termHeight } = useTerminalDimensions()
+  const { renderer } = useAppContext()
 
   // ── Core state ────────────────────────────────────────────────────────────
   const [session] = useState(() => createSession())
@@ -237,6 +241,29 @@ export function App() {
     }
     // Ctrl-C: do NOT intercept — let the process exit normally
   })
+
+  // ── Bubble growth: grow footer as content fills ────────────────────
+  // Estimate content height from items. Each item has a rough line cost:
+  //   user-message:  2 lines (content + blank gap)
+  //   assistant-text: 1 spacer + ceil(content / termWidth) lines
+  //   tool-group:    2 lines collapsed
+  //   thinking:      1 line
+  // footerHeight only ever grows (bubble expands); once it hits termHeight
+  // the history area scrolls naturally.
+  useEffect(() => {
+    if (!renderer) return
+    const contentLines = historyState.items.reduce((acc, item) => {
+      if (item.type === 'user-message') return acc + 2
+      if (item.type === 'assistant-text') return acc + 1 + Math.max(1, Math.ceil(item.content.length / termWidth))
+      if (item.type === 'tool-group') return acc + 2
+      if (item.type === 'thinking') return acc + 1
+      return acc + 1
+    }, 0)
+    const desired = Math.min(CHROME_ROWS + contentLines, termHeight)
+    if (desired > renderer.footerHeight) {
+      renderer.footerHeight = desired
+    }
+  }, [historyState.items, renderer, termHeight, termWidth])
 
   // ── Layout ────────────────────────────────────────────────────────────────
   return (

@@ -1,10 +1,11 @@
+import { Text } from 'ink'
 import { resolveToken } from './theme'
 import type { TokenName } from './theme'
 
 export interface ColorTextProps {
   token: TokenName
   children: string
-  attributes?: number
+  bold?: boolean
 }
 
 /**
@@ -13,11 +14,12 @@ export interface ColorTextProps {
  * The token resolves to the correct fg hex + attributes for the detected
  * theme mode (dark/light) and color depth (truecolor/ansi16).
  */
-export function ColorText({ token, children, attributes = 0 }: ColorTextProps) {
+export function ColorText({ token, children, bold = false }: ColorTextProps) {
   const resolved = resolveToken(token)
+  const isDim = resolved.attrs === 2
   return (
-    <text fg={resolved.fg} attributes={resolved.attrs | attributes}>
+    <Text color={resolved.fg} dimColor={isDim} bold={bold || resolved.attrs === 1}>
       {children}
-    </text>
+    </Text>
   )
 }

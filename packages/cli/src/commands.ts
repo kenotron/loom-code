@@ -1,4 +1,15 @@
-import type { CommandItem } from '@loom-code/ui-command-palette'
+/**
+ * Minimal command item type — mirrors the shape from ui-command-palette but
+ * defined locally so the cli package does not need a hard dependency on that
+ * package.  The command palette UI is a TODO for the ink migration.
+ */
+export interface CommandItem {
+  id: string
+  label: string
+  description?: string
+  group?: string
+  action: () => void | Promise<void>
+}
 
 /**
  * Build the default command list for the command palette.

@@ -1,3 +1,4 @@
+import { Box } from 'ink'
 import { BrightText } from '@loom-code/ui-primitives'
 import { pendingItems, isEmpty } from './state'
 import type { AttentionPanelProps, AttentionItem, AttentionItemType } from './types'
@@ -25,13 +26,13 @@ export function AttentionPanel({ state }: AttentionPanelProps) {
   const pending = pendingItems(state)
 
   return (
-    <box style={{ flexDirection: 'column' }}>
+    <Box flexDirection="column">
       {state.intent !== null && (
         <BrightText>{'▸ ' + state.intent}</BrightText>
       )}
       {pending.map((item: AttentionItem) => (
         <BrightText key={item.id}>{iconFor(item.type) + ' ' + item.message}</BrightText>
       ))}
-    </box>
+    </Box>
   )
 }

@@ -1,4 +1,6 @@
-import { BrightText, ColorText, resolveToken } from '@loom-code/ui-primitives'
+import { Box } from 'ink'
+import TextInput from 'ink-text-input'
+import { BrightText, ColorText } from '@loom-code/ui-primitives'
 import type { CommandPaletteProps } from './types'
 
 const MAX_VISIBLE = 8
@@ -11,11 +13,8 @@ const MAX_VISIBLE = 8
  * - A separator line
  * - Up to 8 filtered items, selected item prefixed with "▸ ", others with "  "
  *
- * The <input> is freshly mounted each time the palette opens (component
- * returns null when closed), so it starts with an empty buffer. ✓
- *
- * Arrow navigation and Escape are handled by App.tsx via useKeyboard.
- * Enter / submit executes the currently selected item via onSubmit.
+ * Arrow navigation and Escape are handled by App.tsx via useInput.
+ * Enter / submit executes the currently selected item via onExecute.
  *
  * All business logic lives in state.ts (fully unit-tested).
  * This component is tested via TypeScript compilation — not runtime rendering.
@@ -26,31 +25,36 @@ export function CommandPalette({ state, onQueryChange, onExecute }: CommandPalet
   const visible = state.filteredItems.slice(0, MAX_VISIBLE)
 
   return (
-    <box style={{ flexDirection: 'column' }}>
-      <box style={{ flexDirection: 'row' }}>
+    <Box flexDirection="column">
+      <Box flexDirection="row">
         <ColorText token="accent.prompt">{'> '}</ColorText>
-        <input
-          placeholder="search commands..."
-          focused
-          onInput={(val) => onQueryChange?.(val)}
+        <TextInput
+          value={state.query}
+          onChange={val => onQueryChange?.(val)}
           onSubmit={() => {
             const item = state.filteredItems[state.selectedIndex]
             if (item) onExecute?.(item)
           }}
-          fg={resolveToken('text.primary').fg}
-          style={{ flexGrow: 1 }}
+          focus
+          placeholder="search commands..."
         />
-      </box>
+      </Box>
       <ColorText token="text.dimmer">{'─'.repeat(40)}</ColorText>
       {visible.map((item, i) => {
         const isSelected = i === state.selectedIndex
         const prefix = isSelected ? '▸ ' : '  '
         const desc = item.description ? `  ${item.description}` : ''
         const label = `${prefix}${item.label}${desc}`
-        return isSelected
-          ? <BrightText key={item.id} attributes={1}>{label}</BrightText>
-          : <ColorText key={item.id} token="text.muted">{label}</ColorText>
+        return isSelected ? (
+          <BrightText key={item.id} bold>
+            {label}
+          </BrightText>
+        ) : (
+          <ColorText key={item.id} token="text.muted">
+            {label}
+          </ColorText>
+        )
       })}
-    </box>
+    </Box>
   )
 }

@@ -19,14 +19,10 @@
     "@loom-code/tool-shell": "workspace:*",
     "@loom-code/tool-tasks": "workspace:*",
     "@loom-code/tool-skills": "workspace:*",
-    "@loom-code/ui-status-bar": "*",
-    "@loom-code/ui-attention-panel": "*",
     "@loom-code/ui-chat-history": "*",
-    "@loom-code/ui-input-bar": "*",
-    "@loom-code/ui-command-palette": "*",
-    "@opentui/react": "*",
-    "@opentui/core": "*",
-    "react": "*",
-    "@loom-code/ui-primitives": "*"
+    "@loom-code/ui-primitives": "*",
+    "ink": "*",
+    "ink-text-input": "*",
+    "react": "*"
   }
 }

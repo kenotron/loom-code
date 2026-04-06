@@ -1,280 +1,269 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-// State machines
-import { createInitialInputBarState } from '@loom-code/ui-input-bar'
-import { createInitialAttentionState, updateIntent } from '@loom-code/ui-attention-panel'
-import {
-  createInitialChatHistoryState,
-  appendUserMessage,
-  startAssistantStream,
-  appendToken,
-  finalizeStream,
-  addToolCall,
-  updateToolCall,
-  toggleGroup,
-} from '@loom-code/ui-chat-history'
-import {
-  createInitialCommandPaletteState,
-  openPalette,
-  closePalette,
-  setQuery as setPaletteQuery,
-  moveSelection,
-  selectedItem,
-} from '@loom-code/ui-command-palette'
-
-// Types
-import type { StatusBarState } from '@loom-code/ui-status-bar'
-import type { InputBarState } from '@loom-code/ui-input-bar'
-import type { AttentionState } from '@loom-code/ui-attention-panel'
-import type { ChatHistoryState } from '@loom-code/ui-chat-history'
-import type { CommandPaletteState } from '@loom-code/ui-command-palette'
-
-// Components
-import { StatusBar } from '@loom-code/ui-status-bar'
-import { AttentionPanel } from '@loom-code/ui-attention-panel'
-import { ChatHistory } from '@loom-code/ui-chat-history'
-import { InputBar } from '@loom-code/ui-input-bar'
-import { CommandPalette } from '@loom-code/ui-command-palette'
-
-// Keyboard + terminal dimensions + renderer access
-import { useKeyboard, useTerminalDimensions } from '@opentui/react'
-
-// Detect terminal color capability once at startup.
-// Without COLORTERM=truecolor, opentui falls back to 256-color mode where
-// explicit #ffffff maps to a dim white. In that case we pass undefined so
-// the terminal's own default foreground (always rendered at full intensity)
-// is used instead.
-
-
-// Session + commands
+import { useState, useCallback, useRef } from 'react'
+import { Box, Text, Static, useStdout, useInput } from 'ink'
+import TextInput from 'ink-text-input'
+import type { ToolCallRow } from '@loom-code/ui-chat-history'
 import { createSession } from './session'
-import { createDefaultCommands } from './commands'
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type CompletedExchange = {
+  id: string
+  userContent: string
+  aiContent: string
+  toolCalls: ToolCallRow[]
+}
+
+type LiveState = {
+  /** User message for the current in-flight turn (displayed in live zone). */
+  userContent: string
+  /** AI response streaming in this turn. */
+  streamingContent: string
+  /** Tool calls active in this turn. */
+  activeToolCalls: ToolCallRow[]
+  /** True from submit until the first token arrives. */
+  isThinking: boolean
+}
+
+// ── Visual constants ──────────────────────────────────────────────────────────
+
+const TOOL_ICON: Record<ToolCallRow['status'], string> = {
+  running: '⠋',
+  success: '✓',
+  error: '✗',
+}
+
+const TOOL_COLOR: Record<ToolCallRow['status'], string> = {
+  running: '#ffd740',
+  success: '#69f0ae',
+  error: '#ff6b6b',
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function App() {
-  const { width: termWidth, height: termHeight } = useTerminalDimensions()
+  const { stdout } = useStdout()
+  const termWidth = stdout?.columns ?? 80
+  const sepLine = '─'.repeat(termWidth)
 
-  // ── Core state ────────────────────────────────────────────────────────────
+  // Session is created once and never replaced
   const [session] = useState(() => createSession())
 
-  const [statusState, setStatusState] = useState<StatusBarState>({
-    model: process.env.MODEL ?? 'claude-opus-4-5',
-    tokenCount: 0,
-    sessionId: session.sessionId,
-  })
-  const [attentionState, setAttentionState] = useState<AttentionState>(() =>
-    createInitialAttentionState(),
-  )
-  const [historyState, setHistoryState] = useState<ChatHistoryState>(() =>
-    createInitialChatHistoryState(),
-  )
-  const [inputState, setInputState] = useState<InputBarState>(() =>
-    createInitialInputBarState(),
-  )
-  const [paletteState, setPaletteState] = useState<CommandPaletteState>(() => {
-    const commands = createDefaultCommands({
-      onNewSession: () => {
-        setHistoryState(createInitialChatHistoryState())
-        setAttentionState(createInitialAttentionState())
-      },
-      onClearHistory: () => setHistoryState(createInitialChatHistoryState()),
-    })
-    return createInitialCommandPaletteState(commands)
+  // ── State split: Static (completed) vs live (current turn) ────────────────
+  const [completedExchanges, setCompletedExchanges] = useState<CompletedExchange[]>([])
+
+  const [live, setLive] = useState<LiveState>({
+    userContent: '',
+    streamingContent: '',
+    activeToolCalls: [],
+    isThinking: false,
   })
 
-  // Track in-flight tool calls so we can map name → id for onToolEnd
-  const toolCallIdRef = useRef<Map<string, string>>(new Map())
+  // Keep a ref in sync so async callbacks see the latest live state
+  // without capturing a stale closure.
+  const liveRef = useRef(live)
+  liveRef.current = live
 
-  // ── Submit / queue ────────────────────────────────────────────────────────
-  // Guard against concurrent submits (ref avoids re-render on change)
-  const isRunning = useRef(false)
+  const [inputValue, setInputValue] = useState('')
+  const [tokenCount, setTokenCount] = useState(0)
 
-  // Visual indicator while waiting for first token
-  const [isThinking, setIsThinking] = useState(false)
+  // In-flight tool calls: keyed by tool name for O(1) onToolEnd lookup
+  const toolCallMapRef = useRef<Map<string, ToolCallRow>>(new Map())
 
-  // Queue for messages submitted while AI is running
-  const messageQueueRef = useRef<string[]>([])
+  // Derived display values (stable, no extra state)
+  const modelName = process.env.MODEL ?? 'claude-opus-4-5'
+  const sessionShort = session.sessionId.slice(0, 8)
+  const statusLine = `${modelName}  ${tokenCount < 1000 ? tokenCount : (tokenCount / 1000).toFixed(1) + 'k'} tokens  #${sessionShort}`
 
-  // Ref kept in sync with the latest runTurn so the queue processor
-  // always gets the non-stale version without a circular useCallback dep.
-  const runTurnRef = useRef<(text: string, skipUserMessage?: boolean) => Promise<void>>(
-    async () => {},
-  )
+  // ── Turn execution ────────────────────────────────────────────────────────
+  const handleSubmit = useCallback(
+    async (text: string) => {
+      if (!text.trim()) return
+      const userContent = text.trim()
 
-  /**
-   * Core turn executor. Shows the user message (unless already shown when
-   * queued), starts the stream, and processes the next queued message when done.
-   *
-   * @param text            The prompt text to send.
-   * @param skipUserMessage When true, the user message was already appended to
-   *                        history at queue time — don't append it again.
-   */
-  const runTurn = useCallback(
-    async (text: string, skipUserMessage = false) => {
-      isRunning.current = true
-
-      if (!skipUserMessage) {
-        const msgId = crypto.randomUUID()
-        setHistoryState(prev => appendUserMessage(prev, msgId, text))
-      }
-
-      // Start assistant stream
-      const streamId = crypto.randomUUID()
-      setHistoryState(prev => startAssistantStream(prev, streamId))
-
-      // Update attention panel intent
-      setAttentionState(prev => updateIntent(prev, text))
-
-      setIsThinking(true)
-      let firstToken = true
+      // Clear input immediately and initialise live state for this turn
+      setInputValue('')
+      setLive({
+        userContent,
+        streamingContent: '',
+        activeToolCalls: [],
+        isThinking: true,
+      })
+      toolCallMapRef.current.clear()
 
       try {
-        await session.runTurn(text, {
+        await session.runTurn(userContent, {
           onToken: (token: string) => {
-            if (firstToken) {
-              setIsThinking(false)
-              firstToken = false
-            }
-            setHistoryState(prev => appendToken(prev, token))
-            setStatusState(prev => ({
+            setLive(prev => ({
               ...prev,
-              tokenCount: prev.tokenCount + 1,
+              isThinking: false,
+              streamingContent: prev.streamingContent + token,
+            }))
+            setTokenCount(prev => prev + 1)
+          },
+
+          onToolStart: (name: string) => {
+            const call: ToolCallRow = {
+              id: crypto.randomUUID(),
+              toolName: name,
+              status: 'running',
+              startedAt: Date.now(),
+            }
+            toolCallMapRef.current.set(name, call)
+            setLive(prev => ({
+              ...prev,
+              activeToolCalls: [...toolCallMapRef.current.values()],
             }))
           },
-          onToolStart: (name: string) => {
-            const toolId = crypto.randomUUID()
-            toolCallIdRef.current.set(name, toolId)
-            setHistoryState(prev => addToolCall(prev, toolId, name))
-          },
+
           onToolEnd: (name: string, success: boolean, output: string) => {
-            const toolId = toolCallIdRef.current.get(name)
-            if (toolId) {
-              setHistoryState(prev =>
-                updateToolCall(
-                  prev,
-                  toolId,
-                  success ? 'success' : 'error',
-                  success ? output : undefined,
-                  success ? undefined : output,
-                ),
-              )
-              toolCallIdRef.current.delete(name)
+            const call = toolCallMapRef.current.get(name)
+            if (call) {
+              call.status = success ? 'success' : 'error'
+              call.error = success ? undefined : output
+              toolCallMapRef.current.set(name, call)
+              setLive(prev => ({
+                ...prev,
+                activeToolCalls: [...toolCallMapRef.current.values()],
+              }))
             }
           },
         })
       } catch (err) {
-        // Don't surface an error if the turn was intentionally cancelled
         if (!session.isCancelled) {
           const errMsg = err instanceof Error ? err.message : String(err)
-          setHistoryState(prev => appendToken(prev, `\n[error: ${errMsg}]`))
+          setLive(prev => ({
+            ...prev,
+            streamingContent: prev.streamingContent + `\n[error: ${errMsg}]`,
+          }))
         }
       } finally {
-        isRunning.current = false
-        setIsThinking(false)
-        setHistoryState(prev => finalizeStream(prev))
-
-        // Process the next queued message (if any). Use the ref so we always
-        // get the current version of runTurn even after re-renders.
-        const next = messageQueueRef.current[0]
-        messageQueueRef.current = messageQueueRef.current.slice(1)
-        if (next) {
-          // The queued message was already appended to history at queue time.
-          setTimeout(() => runTurnRef.current(next, true), 50)
-        }
+        // Capture the latest live state (via ref) and push it to Static zone,
+        // then reset live so the live zone returns to idle.
+        const finalLive = liveRef.current
+        setCompletedExchanges(prev => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            userContent: finalLive.userContent,
+            aiContent: finalLive.streamingContent,
+            toolCalls: finalLive.activeToolCalls,
+          },
+        ])
+        setLive({ userContent: '', streamingContent: '', activeToolCalls: [], isThinking: false })
       }
     },
     [session],
   )
 
-  // Keep ref in sync so queue processing never captures a stale closure.
-  runTurnRef.current = runTurn
-
-  const handleSubmit = useCallback(
-    async (text: string) => {
-      if (!text.trim()) return
-
-      // If already running, enqueue and show the message immediately
-      if (isRunning.current) {
-        const queuedMsgId = crypto.randomUUID()
-        setHistoryState(prev => appendUserMessage(prev, queuedMsgId, text))
-        messageQueueRef.current = [...messageQueueRef.current, text]
-        return
-      }
-
-      await runTurn(text)
-    },
-    [runTurn],
-  )
-
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
-  useKeyboard(key => {
-    // Ctrl-P → toggle palette
-    if (key.ctrl && key.name === 'p') {
-      key.preventDefault()
-      setPaletteState(prev => prev.open ? closePalette(prev) : openPalette(prev))
-      return
+  useInput((input, key) => {
+    // Esc during a turn → cancel the running response
+    if (key.escape && live.isThinking) {
+      session.cancel()
     }
-
-    // Escape: close palette OR cancel running response
-    if (key.name === 'escape') {
-      key.preventDefault()
-      if (paletteState.open) {
-        setPaletteState(prev => closePalette(prev))
-      } else if (isRunning.current) {
-        messageQueueRef.current = []
-        session.cancel()
-      }
-      return
+    // Ctrl-P → command palette (TODO)
+    if (key.ctrl && input === 'p') {
+      // placeholder — will open command palette in a future iteration
     }
-
-    // Palette navigation (only when open)
-    if (paletteState.open) {
-      if (key.name === 'up') {
-        key.preventDefault()
-        setPaletteState(prev => moveSelection(prev, 'up'))
-      } else if (key.name === 'down') {
-        key.preventDefault()
-        setPaletteState(prev => moveSelection(prev, 'down'))
-      }
-    }
-    // Ctrl-C: do NOT intercept — let the process exit normally
   })
 
-  // ── Layout ────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <box bg="#0a0a0a" style={{ flexDirection: 'column', height: '100%' }}>
-      <box style={{ flexGrow: 1, overflow: 'hidden' }}>
-        <AttentionPanel state={attentionState} />
-        <ChatHistory
-          state={historyState}
-          onToggleGroup={id => setHistoryState(prev => toggleGroup(prev, id))}
-        />
-      </box>
-      <InputBar
-        initialState={inputState}
-        callbacks={{
-          onSubmit: handleSubmit,
-          onValueChange: (value: string) =>
-            setInputState(prev => ({ ...prev, value })),
-        }}
-        focused={!paletteState.open}
-        termWidth={termWidth}
-        isThinking={isThinking}
-      />
-      <StatusBar state={statusState} />
-      {paletteState.open && (
-        <CommandPalette
-          state={paletteState}
-          onClose={() => setPaletteState(prev => closePalette(prev))}
-          onQueryChange={q => setPaletteState(prev => setPaletteQuery(prev, q))}
-          onSelectionChange={i =>
-            setPaletteState(prev => ({ ...prev, selectedIndex: i }))
-          }
-          onExecute={item => {
-            item.action()
-            setPaletteState(prev => closePalette(prev))
-          }}
-        />
-      )}
-    </box>
+    <>
+      {/*
+       * Zone 1 — Static: completed exchanges.
+       * Ink renders these once to stdout and never touches them again;
+       * they become normal terminal scrollback.
+       */}
+      <Static items={completedExchanges}>
+        {exchange => (
+          <Box key={exchange.id} flexDirection="column">
+            {/* User message bubble */}
+            <Box>
+              <Text>{'  '}</Text>
+              <Text bold color="#ffffff" backgroundColor="#1e1e1e">
+                {exchange.userContent}
+              </Text>
+              <Text>{'  '}</Text>
+            </Box>
+
+            {/* Blank line */}
+            <Text>{' '}</Text>
+
+            {/* Tool calls for this exchange */}
+            {exchange.toolCalls.map(call => (
+              <Box key={call.id} flexDirection="row">
+                <Text>{'  '}</Text>
+                <Text color={TOOL_COLOR[call.status]}>{TOOL_ICON[call.status] + ' '}</Text>
+                <Text color="#909090">
+                  {call.toolName + (call.error ? '  ' + call.error : '')}
+                </Text>
+              </Box>
+            ))}
+
+            {/* AI response text */}
+            {exchange.aiContent ? <Text>{exchange.aiContent}</Text> : null}
+
+            {/* Full-width separator */}
+            <Text dimColor>{sepLine}</Text>
+          </Box>
+        )}
+      </Static>
+
+      {/*
+       * Zone 2 — Live: current in-flight turn + input.
+       * Re-rendered by ink on every state change via log-update.
+       * Must stay small (< terminal height) to avoid flicker.
+       */}
+      <Box flexDirection="column">
+        {/* In-flight user message */}
+        {live.userContent ? (
+          <Box>
+            <Text>{'  '}</Text>
+            <Text bold color="#ffffff" backgroundColor="#1e1e1e">
+              {live.userContent}
+            </Text>
+            <Text>{'  '}</Text>
+          </Box>
+        ) : null}
+        {live.userContent ? <Text>{' '}</Text> : null}
+
+        {/* Active tool calls */}
+        {live.activeToolCalls.map(call => (
+          <Box key={call.id} flexDirection="row">
+            <Text>{'  '}</Text>
+            <Text color={TOOL_COLOR[call.status]}>{TOOL_ICON[call.status] + ' '}</Text>
+            <Text color="#909090">
+              {call.toolName + (call.error ? '  ' + call.error : '')}
+            </Text>
+          </Box>
+        ))}
+
+        {/* Streaming AI response with blinking cursor */}
+        {live.streamingContent ? <Text>{live.streamingContent + '▌'}</Text> : null}
+
+        {/* Separator line */}
+        <Text dimColor>{sepLine}</Text>
+
+        {/* Prompt arrow + text input */}
+        <Box flexDirection="row">
+          {live.isThinking ? (
+            <Text color="#ffd740">{'⠋ '}</Text>
+          ) : (
+            <Text color="#7cb9e8">{'▸ '}</Text>
+          )}
+          <TextInput
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handleSubmit}
+            focus={!live.isThinking}
+            placeholder={live.isThinking ? 'generating… Esc to cancel' : ''}
+          />
+        </Box>
+
+        {/* Status: model · tokens · session */}
+        <Text dimColor>{statusLine}</Text>
+      </Box>
+    </>
   )
 }

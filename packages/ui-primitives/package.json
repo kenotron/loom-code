@@ -10,8 +10,7 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "@opentui/react": "*",
-    "@opentui/core": "*",
+    "ink": "*",
     "react": "*"
   }
 }

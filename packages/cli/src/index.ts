@@ -1,12 +1,14 @@
 import { createElement } from 'react'
-import { createCliRenderer } from '@opentui/core'
-import { createRoot } from '@opentui/react'
+import { render } from 'ink'
 import { App } from './App'
 
 async function main() {
-  const renderer = await createCliRenderer()
-  const root = createRoot(renderer)
-  root.render(createElement(App))
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    console.error('ANTHROPIC_API_KEY is not set.')
+    process.exit(1)
+  }
+  render(createElement(App))
 }
 
 main().catch(err => {

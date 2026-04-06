@@ -5,7 +5,7 @@
     "rootDir": "./src",
     "composite": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "@opentui/react",
+    "jsxImportSource": "react",
     "lib": ["ESNext", "DOM"]
   },
   "include": ["src"]

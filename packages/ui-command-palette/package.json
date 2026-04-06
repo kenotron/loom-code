@@ -10,9 +10,9 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "@opentui/react": "*",
-    "@opentui/core": "*",
-    "react": "*",
-    "@loom-code/ui-primitives": "*"
+    "@loom-code/ui-primitives": "*",
+    "ink": "*",
+    "ink-text-input": "*",
+    "react": "*"
   }
 }

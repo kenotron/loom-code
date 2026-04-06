@@ -1,47 +1,51 @@
 import { useState, useCallback } from 'react'
+import { Box, Text } from 'ink'
+import TextInput from 'ink-text-input'
 import { resolveToken, ColorText } from '@loom-code/ui-primitives'
-import { updateValue, submitValue, toggleMic } from './state'
 import type { InputBarProps } from './types'
 
-const MIC_ICON = '🎤'
-const MIC_ACTIVE_ICON = '●'
 const SEPARATOR_CHAR = '─'
 
 /**
- * InputBar — pure chat input. No slash commands. No settings.
+ * InputBar — pure chat input using ink primitives.
  *
- * App-layer concerns (tools, settings, session management) live in the
- * Ctrl-P command palette, not here. This component handles ONLY text input.
- *
- * All business logic lives in state.ts (fully unit-tested).
- * This component is tested via TypeScript compilation — not runtime rendering.
+ * Simplified for the ink migration: state is managed locally with a plain
+ * string value rather than the full InputBarState machine.  The state-machine
+ * helpers (updateValue / submitValue / toggleMic) are still exported from
+ * state.ts for consumers that need them directly.
  *
  * Renders as a 3-line box:
- *   Line 1: ────────────────────── (separator, full width, text.dimmer color)
- *   Line 2: ▸ [input or ⠋ thinking] (prompt + input)
+ *   Line 1: ───────────────────── (separator, full width, text.dimmer color)
+ *   Line 2: ▸ [input or ⠋ thinking]
  *   Line 3: (empty padding line)
  */
-export function InputBar({ initialState, callbacks, placeholder = '▸', focused, termWidth, isThinking }: InputBarProps) {
-  const [state, setState] = useState(initialState)
+export function InputBar({
+  initialState,
+  callbacks,
+  focused,
+  termWidth,
+  isThinking,
+}: InputBarProps) {
+  const [value, setValue] = useState(initialState.value)
 
-  const handleInput = useCallback((value: string) => {
-    setState(prev => updateValue(prev, value))
-    callbacks.onValueChange?.(value)
-  }, [callbacks])
+  const handleChange = useCallback(
+    (val: string) => {
+      setValue(val)
+      callbacks.onValueChange?.(val)
+    },
+    [callbacks],
+  )
 
-  const handleSubmit = useCallback(() => {
-    const { newState, submitted } = submitValue(state)
-    setState(newState)
-    if (submitted !== null) {
-      callbacks.onSubmit(submitted)
-    }
-  }, [state, callbacks])
-
-  const handleMicToggle = useCallback(() => {
-    const next = toggleMic(state)
-    setState(next)
-    callbacks.onVoiceToggle?.()
-  }, [state, callbacks])
+  const handleSubmit = useCallback(
+    (val: string) => {
+      const trimmed = val.trim()
+      if (trimmed) {
+        setValue('')
+        callbacks.onSubmit(trimmed)
+      }
+    },
+    [callbacks],
+  )
 
   const width = termWidth ?? 80
   const separator = SEPARATOR_CHAR.repeat(width)
@@ -49,32 +53,26 @@ export function InputBar({ initialState, callbacks, placeholder = '▸', focused
   const thinkingColor = resolveToken('status.running')
 
   return (
-    <box bg="#141414" style={{ flexDirection: 'column' }}>
+    <Box flexDirection="column">
       {/* Line 1: separator */}
       <ColorText token="text.dimmer">{separator}</ColorText>
       {/* Line 2: prompt + input */}
-      <box style={{ flexDirection: 'row' }}>
+      <Box flexDirection="row">
         {isThinking ? (
-          <text fg={thinkingColor.fg} attributes={thinkingColor.attrs}>{'⠋ '}</text>
+          <Text color={thinkingColor.fg}>{'⠋ '}</Text>
         ) : (
-          <text fg={promptColor.fg} attributes={promptColor.attrs}>{'▸ '}</text>
+          <Text color={promptColor.fg}>{'▸ '}</Text>
         )}
-        <input
-          value={state.value}
-          onInput={handleInput}
+        <TextInput
+          value={value}
+          onChange={handleChange}
           onSubmit={handleSubmit}
-          fg={resolveToken('text.primary').fg}
-          attributes={resolveToken('text.primary').attrs}
-          style={{ flexGrow: 1 }}
-          focused={focused !== false && !isThinking}
+          focus={focused !== false && !isThinking}
           placeholder={isThinking ? 'generating… Esc to cancel' : ''}
         />
-        {callbacks.onVoiceToggle !== undefined && (
-          <text fg={promptColor.fg}>{state.micActive ? MIC_ACTIVE_ICON : MIC_ICON}</text>
-        )}
-      </box>
+      </Box>
       {/* Line 3: padding */}
-      <text>{' '}</text>
-    </box>
+      <Text>{' '}</Text>
+    </Box>
   )
 }

@@ -1,12 +1,20 @@
-import { ColorText } from './ColorText'
-import type { ColorTextProps } from './ColorText'
+import { Text } from 'ink'
+import { resolveToken } from './theme'
 
-export type BrightTextProps = Omit<ColorTextProps, 'token'>
+export interface BrightTextProps {
+  children: string
+  bold?: boolean
+}
 
 /**
  * Convenience wrapper — renders primary (white/intense) text.
  * Equivalent to <ColorText token="text.primary">.
  */
-export function BrightText({ children, attributes }: BrightTextProps) {
-  return <ColorText token="text.primary" attributes={attributes}>{children}</ColorText>
+export function BrightText({ children, bold = false }: BrightTextProps) {
+  const resolved = resolveToken('text.primary')
+  return (
+    <Text color={resolved.fg} bold={bold || resolved.attrs === 1}>
+      {children}
+    </Text>
+  )
 }

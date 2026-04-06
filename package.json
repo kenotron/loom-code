@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "bun run packages/cli/src/index.ts",
+    "dev": "OTUI_USE_ALTERNATE_SCREEN=false bun run packages/cli/src/index.ts",
     "test": "bun test --recursive",
     "test:watch": "bun test --watch --recursive",
     "typecheck": "bunx tsc --noEmit"
@@ -16,6 +16,8 @@
     "@anthropic-ai/sdk": "0.82.0",
     "@opentui/core": "0.1.96",
     "@opentui/react": "0.1.96",
+    "ink": "6.8.0",
+    "ink-text-input": "6.0.0",
     "react": "19.2.4"
   }
 }

@@ -40,8 +40,8 @@ FILESYSTEM
     read_file(path, offset?, limit?)   – read a file; slice with offset/limit
     write_file(path, content)          – create or overwrite (parents auto-created)
     edit_file(path, old_string, new_string, replace_all?) – exact-string patch
-    list(path)                         – list directory entries
-    stat(path)                         – check existence, type, size
+    list_directory(path)               – list directory entries
+    file_info(path)                    – check existence, type, size
     glob(pattern, base?)               – find files matching a glob
 
   Use real absolute paths (e.g. ${cwd}/src/foo.ts) — they work directly.

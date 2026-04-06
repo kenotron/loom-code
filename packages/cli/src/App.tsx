@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Box, Text, Static, useStdout, useInput } from 'ink'
 import TextInput from 'ink-text-input'
+import Markdown from 'ink-markdown'
 import type { ToolCallRow } from '@loom-code/ui-chat-history'
 import { createSession } from './session'
 
@@ -92,20 +93,33 @@ function ToolRow({ call }: { call: ToolCallRow }) {
   )
 }
 
-/** Renders an ordered sequence of text + tool blocks. */
-function TurnBlocks({ blocks, cursor = false }: { blocks: TurnBlock[]; cursor?: boolean }) {
+/**
+ * Renders an ordered sequence of text + tool blocks.
+ *
+ * markdown=true  → use <Markdown> for text (completed exchanges in Static zone)
+ * markdown=false → plain <Text> with optional cursor (live streaming zone)
+ */
+function TurnBlocks({
+  blocks,
+  cursor = false,
+  markdown = false,
+}: {
+  blocks: TurnBlock[]
+  cursor?: boolean
+  markdown?: boolean
+}) {
   return (
     <>
       {blocks.map((block, i) => {
         if (block.type === 'tool') {
           return <ToolRow key={block.call.id} call={block.call} />
         }
-        // text block — show cursor only on the last text block when cursor=true
         const isLast = i === blocks.length - 1
+        if (markdown) {
+          return <Markdown key={i}>{block.content}</Markdown>
+        }
         return (
-          <Text key={i}>
-            {block.content}{cursor && isLast ? '▌' : ''}
-          </Text>
+          <Text key={i}>{block.content}{cursor && isLast ? '▌' : ''}</Text>
         )
       })}
     </>
@@ -263,7 +277,7 @@ export function App() {
           <Box key={exchange.id} flexDirection="column">
             <UserBubble content={exchange.userContent} />
             <Text>{' '}</Text>
-            <TurnBlocks blocks={exchange.blocks} />
+            <TurnBlocks blocks={exchange.blocks} markdown />
             <Text>{' '}</Text>
             <Text dimColor>{'─'.repeat(termWidth)}</Text>
           </Box>

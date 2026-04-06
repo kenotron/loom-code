@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Box, Text, Static, useStdout, useInput } from 'ink'
 import TextInput from 'ink-text-input'
-import Markdown from 'ink-markdown'
+import { render as renderMd } from 'streammark'
 import type { ToolCallRow } from '@loom-code/ui-chat-history'
 import { createSession } from './session'
 
@@ -95,19 +95,10 @@ function ToolRow({ call }: { call: ToolCallRow }) {
 
 /**
  * Renders an ordered sequence of text + tool blocks.
- *
- * markdown=true  → use <Markdown> for text (completed exchanges in Static zone)
- * markdown=false → plain <Text> with optional cursor (live streaming zone)
+ * Text blocks are always rendered via streammark, which handles partial
+ * markdown gracefully during streaming — no swap needed.
  */
-function TurnBlocks({
-  blocks,
-  cursor = false,
-  markdown = false,
-}: {
-  blocks: TurnBlock[]
-  cursor?: boolean
-  markdown?: boolean
-}) {
+function TurnBlocks({ blocks, cursor = false }: { blocks: TurnBlock[]; cursor?: boolean }) {
   return (
     <>
       {blocks.map((block, i) => {
@@ -115,12 +106,13 @@ function TurnBlocks({
           return <ToolRow key={block.call.id} call={block.call} />
         }
         const isLast = i === blocks.length - 1
-        if (markdown) {
-          return <Markdown key={i}>{block.content}</Markdown>
-        }
-        return (
-          <Text key={i}>{block.content}{cursor && isLast ? '▌' : ''}</Text>
-        )
+        const rendered = renderMd(block.content)
+        // Append cursor to the raw content before rendering so it appears
+        // at the end of the last line, not on a line by itself.
+        const withCursor = cursor && isLast
+          ? renderMd(block.content.trimEnd() + '▌')
+          : rendered
+        return <Text key={i}>{withCursor}</Text>
       })}
     </>
   )
@@ -277,7 +269,7 @@ export function App() {
           <Box key={exchange.id} flexDirection="column">
             <UserBubble content={exchange.userContent} />
             <Text>{' '}</Text>
-            <TurnBlocks blocks={exchange.blocks} markdown />
+            <TurnBlocks blocks={exchange.blocks} />
             <Text>{' '}</Text>
             <Text dimColor>{'─'.repeat(termWidth)}</Text>
           </Box>

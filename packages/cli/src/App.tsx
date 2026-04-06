@@ -116,16 +116,19 @@ export function App() {
           },
 
           onToolEnd: (name: string, success: boolean, output: string) => {
-            const call = toolCallMapRef.current.get(name)
-            if (call) {
-              call.status = success ? 'success' : 'error'
-              call.error = success ? undefined : output
+            let call = toolCallMapRef.current.get(name)
+            if (!call) {
+              // Tool was denied by hook before onToolStart fired — create row now
+              call = { id: crypto.randomUUID(), toolName: name, status: 'error', startedAt: Date.now() }
               toolCallMapRef.current.set(name, call)
-              setLive(prev => ({
-                ...prev,
-                activeToolCalls: [...toolCallMapRef.current.values()],
-              }))
             }
+            call.status = success ? 'success' : 'error'
+            call.error = success ? undefined : output
+            toolCallMapRef.current.set(name, call)
+            setLive(prev => ({
+              ...prev,
+              activeToolCalls: [...toolCallMapRef.current.values()],
+            }))
           },
         })
       } catch (err) {
@@ -242,18 +245,15 @@ export function App() {
         {/* Streaming AI response with blinking cursor */}
         {live.streamingContent ? <Text>{live.streamingContent + '▌'}</Text> : null}
 
-        {/* Separator line */}
-        <Text dimColor>{sepLine}</Text>
-
-        {/* Prompt arrow + text input */}
-        <Box flexDirection="row">
+        {/* Input box — Codex-style rounded border, full width */}
+        <Box borderStyle="round" borderColor="gray" paddingX={1}>
           {live.isThinking ? (
             <Text color="#ffd740">{'⠋ '}</Text>
           ) : (
-            <Text color="#7cb9e8">{'▸ '}</Text>
+            <Text color="#909090">{'> '}</Text>
           )}
           <TextInput
-            value={inputValue}
+            value={live.isThinking ? '' : inputValue}
             onChange={setInputValue}
             onSubmit={handleSubmit}
             focus={!live.isThinking}
@@ -262,7 +262,7 @@ export function App() {
         </Box>
 
         {/* Status: model · tokens · session */}
-        <Text dimColor>{statusLine}</Text>
+        <Text dimColor>{' ' + statusLine}</Text>
       </Box>
     </>
   )

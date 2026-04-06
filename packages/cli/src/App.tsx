@@ -1,30 +1,60 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Box, Text, Static, useStdout, useInput } from 'ink'
 import TextInput from 'ink-text-input'
 import type { ToolCallRow } from '@loom-code/ui-chat-history'
 import { createSession } from './session'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Hook: track terminal dimensions ─────────────────────────────────────────
 
+function useTerminalDimensions() {
+  const { stdout } = useStdout()
+  const [dimensions, setDimensions] = useState({
+    width: stdout?.columns ?? 80,
+    height: stdout?.rows ?? 24,
+  })
+
+  useEffect(() => {
+    if (!stdout) return
+    const handleResize = () => setDimensions({ width: stdout.columns, height: stdout.rows })
+    stdout.on('resize', handleResize)
+    return () => { stdout.off('resize', handleResize) }
+  }, [stdout])
+
+  return dimensions
+}
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+/**
+ * A single ordered content block within a turn.
+ * Preserves the exact sequence of text segments and tool calls as they happened.
+ */
+type TurnBlock =
+  | { type: 'text'; content: string }
+  | { type: 'tool'; call: ToolCallRow }
+
+/**
+ * A completed exchange (user message + AI response) stored in the Static zone.
+ * blocks is ordered chronologically: text before tool call, tool call, text after.
+ */
 type CompletedExchange = {
   id: string
   userContent: string
-  aiContent: string
-  toolCalls: ToolCallRow[]
+  blocks: TurnBlock[]
 }
 
+/**
+ * The live in-flight turn.
+ * Same ordered blocks structure, but ToolCallRow objects are still mutable
+ * (status updates from onToolEnd come in after onToolStart).
+ */
 type LiveState = {
-  /** User message for the current in-flight turn (displayed in live zone). */
-  userContent: string
-  /** AI response streaming in this turn. */
-  streamingContent: string
-  /** Tool calls active in this turn. */
-  activeToolCalls: ToolCallRow[]
-  /** True from submit until the first token arrives. */
-  isThinking: boolean
+  userContent: string   // shown as gray-bg user bubble
+  blocks: TurnBlock[]   // ordered sequence being built in real time
+  isThinking: boolean   // true from submit until first token
 }
 
-// ── Visual constants ──────────────────────────────────────────────────────────
+// ── Visual constants ─────────────────────────────────────────────────────────
 
 const TOOL_ICON: Record<ToolCallRow['status'], string> = {
   running: '⠋',
@@ -38,14 +68,55 @@ const TOOL_COLOR: Record<ToolCallRow['status'], string> = {
   error: '#ff6b6b',
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Sub-components ───────────────────────────────────────────────────────────
+
+function UserBubble({ content }: { content: string }) {
+  return (
+    <Box>
+      <Text>{'  '}</Text>
+      <Text bold color="#ffffff" backgroundColor="#1e1e1e">{content}</Text>
+      <Text>{'  '}</Text>
+    </Box>
+  )
+}
+
+function ToolRow({ call }: { call: ToolCallRow }) {
+  return (
+    <Box flexDirection="row">
+      <Text>{'  '}</Text>
+      <Text color={TOOL_COLOR[call.status]}>{TOOL_ICON[call.status] + ' '}</Text>
+      <Text color="#909090">
+        {call.toolName}{call.error ? '  ' + call.error.split('\n')[0] : ''}
+      </Text>
+    </Box>
+  )
+}
+
+/** Renders an ordered sequence of text + tool blocks. */
+function TurnBlocks({ blocks, cursor = false }: { blocks: TurnBlock[]; cursor?: boolean }) {
+  return (
+    <>
+      {blocks.map((block, i) => {
+        if (block.type === 'tool') {
+          return <ToolRow key={block.call.id} call={block.call} />
+        }
+        // text block — show cursor only on the last text block when cursor=true
+        const isLast = i === blocks.length - 1
+        return (
+          <Text key={i}>
+            {block.content}{cursor && isLast ? '▌' : ''}
+          </Text>
+        )
+      })}
+    </>
+  )
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function App() {
-  const { stdout } = useStdout()
-  const termWidth = stdout?.columns ?? 80
-  const sepLine = '─'.repeat(termWidth)
+  const { width: termWidth } = useTerminalDimensions()
 
-  // Session is created once and never replaced
   const [session] = useState(() => createSession())
 
   // ── State split: Static (completed) vs live (current turn) ────────────────
@@ -53,23 +124,21 @@ export function App() {
 
   const [live, setLive] = useState<LiveState>({
     userContent: '',
-    streamingContent: '',
-    activeToolCalls: [],
+    blocks: [],
     isThinking: false,
   })
 
-  // Keep a ref in sync so async callbacks see the latest live state
-  // without capturing a stale closure.
+  // Ref kept in sync so the async finally block reads the latest committed state
   const liveRef = useRef(live)
   liveRef.current = live
 
   const [inputValue, setInputValue] = useState('')
   const [tokenCount, setTokenCount] = useState(0)
 
-  // In-flight tool calls: keyed by tool name for O(1) onToolEnd lookup
+  // Mutable map: tool name → ToolCallRow object reference (for O(1) onToolEnd lookup)
+  // The same object is referenced inside live.blocks so mutating it updates the display.
   const toolCallMapRef = useRef<Map<string, ToolCallRow>>(new Map())
 
-  // Derived display values (stable, no extra state)
   const modelName = process.env.MODEL ?? 'claude-opus-4-5'
   const sessionShort = session.sessionId.slice(0, 8)
   const statusLine = `${modelName}  ${tokenCount < 1000 ? tokenCount : (tokenCount / 1000).toFixed(1) + 'k'} tokens  #${sessionShort}`
@@ -80,24 +149,25 @@ export function App() {
       if (!text.trim()) return
       const userContent = text.trim()
 
-      // Clear input immediately and initialise live state for this turn
       setInputValue('')
-      setLive({
-        userContent,
-        streamingContent: '',
-        activeToolCalls: [],
-        isThinking: true,
-      })
+      setLive({ userContent, blocks: [], isThinking: true })
       toolCallMapRef.current.clear()
 
       try {
         await session.runTurn(userContent, {
           onToken: (token: string) => {
-            setLive(prev => ({
-              ...prev,
-              isThinking: false,
-              streamingContent: prev.streamingContent + token,
-            }))
+            setLive(prev => {
+              const blocks = [...prev.blocks]
+              const last = blocks[blocks.length - 1]
+              if (last?.type === 'text') {
+                // Append token to the current text block
+                blocks[blocks.length - 1] = { type: 'text', content: last.content + token }
+              } else {
+                // Start a new text block (after a tool call, or first token)
+                blocks.push({ type: 'text', content: token })
+              }
+              return { ...prev, isThinking: false, blocks }
+            })
             setTokenCount(prev => prev + 1)
           },
 
@@ -111,48 +181,57 @@ export function App() {
             toolCallMapRef.current.set(name, call)
             setLive(prev => ({
               ...prev,
-              activeToolCalls: [...toolCallMapRef.current.values()],
+              blocks: [...prev.blocks, { type: 'tool', call }],
             }))
           },
 
           onToolEnd: (name: string, success: boolean, output: string) => {
             let call = toolCallMapRef.current.get(name)
             if (!call) {
-              // Tool was denied by hook before onToolStart fired — create row now
+              // Denied by hook before onToolStart — insert it now
               call = { id: crypto.randomUUID(), toolName: name, status: 'error', startedAt: Date.now() }
+              call.status = success ? 'success' : 'error'
+              call.error = success ? undefined : output
               toolCallMapRef.current.set(name, call)
+              const captured = call
+              setLive(prev => ({
+                ...prev,
+                blocks: [...prev.blocks, { type: 'tool', call: captured }],
+              }))
+              return
             }
+            // Mutate the ToolCallRow in place (same object reference in blocks)
             call.status = success ? 'success' : 'error'
             call.error = success ? undefined : output
-            toolCallMapRef.current.set(name, call)
-            setLive(prev => ({
-              ...prev,
-              activeToolCalls: [...toolCallMapRef.current.values()],
-            }))
+            // New array reference triggers re-render; block objects updated in place
+            setLive(prev => ({ ...prev, blocks: [...prev.blocks] }))
           },
         })
       } catch (err) {
         if (!session.isCancelled) {
           const errMsg = err instanceof Error ? err.message : String(err)
-          setLive(prev => ({
-            ...prev,
-            streamingContent: prev.streamingContent + `\n[error: ${errMsg}]`,
-          }))
+          setLive(prev => {
+            const blocks = [...prev.blocks]
+            const last = blocks[blocks.length - 1]
+            if (last?.type === 'text') {
+              blocks[blocks.length - 1] = { type: 'text', content: last.content + `\n[error: ${errMsg}]` }
+            } else {
+              blocks.push({ type: 'text', content: `[error: ${errMsg}]` })
+            }
+            return { ...prev, blocks }
+          })
         }
       } finally {
-        // Capture the latest live state (via ref) and push it to Static zone,
-        // then reset live so the live zone returns to idle.
         const finalLive = liveRef.current
         setCompletedExchanges(prev => [
           ...prev,
           {
             id: crypto.randomUUID(),
             userContent: finalLive.userContent,
-            aiContent: finalLive.streamingContent,
-            toolCalls: finalLive.activeToolCalls,
+            blocks: finalLive.blocks,
           },
         ])
-        setLive({ userContent: '', streamingContent: '', activeToolCalls: [], isThinking: false })
+        setLive({ userContent: '', blocks: [], isThinking: false })
       }
     },
     [session],
@@ -160,92 +239,57 @@ export function App() {
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useInput((input, key) => {
-    // Esc during a turn → cancel the running response
-    if (key.escape && live.isThinking) {
+    if (key.escape && (live.isThinking || live.blocks.length > 0)) {
       session.cancel()
     }
-    // Ctrl-P → command palette (TODO)
     if (key.ctrl && input === 'p') {
-      // placeholder — will open command palette in a future iteration
+      // command palette — TODO
     }
   })
 
   // ── Render ────────────────────────────────────────────────────────────────
+  const isActiveTurn = live.userContent !== ''
+  const lastBlock = live.blocks[live.blocks.length - 1]
+  const showCursor = isActiveTurn && lastBlock?.type === 'text'
+
   return (
     <>
       {/*
        * Zone 1 — Static: completed exchanges.
-       * Ink renders these once to stdout and never touches them again;
-       * they become normal terminal scrollback.
+       * Ink renders these once to stdout; they become permanent terminal scrollback.
        */}
       <Static items={completedExchanges}>
         {exchange => (
           <Box key={exchange.id} flexDirection="column">
-            {/* User message bubble */}
-            <Box>
-              <Text>{'  '}</Text>
-              <Text bold color="#ffffff" backgroundColor="#1e1e1e">
-                {exchange.userContent}
-              </Text>
-              <Text>{'  '}</Text>
-            </Box>
-
-            {/* Blank line */}
+            <UserBubble content={exchange.userContent} />
             <Text>{' '}</Text>
-
-            {/* Tool calls for this exchange */}
-            {exchange.toolCalls.map(call => (
-              <Box key={call.id} flexDirection="row">
-                <Text>{'  '}</Text>
-                <Text color={TOOL_COLOR[call.status]}>{TOOL_ICON[call.status] + ' '}</Text>
-                <Text color="#909090">
-                  {call.toolName + (call.error ? '  ' + call.error : '')}
-                </Text>
-              </Box>
-            ))}
-
-            {/* AI response text */}
-            {exchange.aiContent ? <Text>{exchange.aiContent}</Text> : null}
-
-            {/* Full-width separator */}
-            <Text dimColor>{sepLine}</Text>
+            <TurnBlocks blocks={exchange.blocks} />
+            <Text>{' '}</Text>
+            <Text dimColor>{'─'.repeat(termWidth)}</Text>
           </Box>
         )}
       </Static>
 
       {/*
-       * Zone 2 — Live: current in-flight turn + input.
+       * Zone 2 — Live: current in-flight turn + input chrome.
        * Re-rendered by ink on every state change via log-update.
-       * Must stay small (< terminal height) to avoid flicker.
+       * Must stay compact (< terminal height) to avoid flicker.
        */}
       <Box flexDirection="column">
         {/* In-flight user message */}
-        {live.userContent ? (
-          <Box>
-            <Text>{'  '}</Text>
-            <Text bold color="#ffffff" backgroundColor="#1e1e1e">
-              {live.userContent}
-            </Text>
-            <Text>{'  '}</Text>
-          </Box>
+        {isActiveTurn ? (
+          <>
+            <UserBubble content={live.userContent} />
+            <Text>{' '}</Text>
+          </>
         ) : null}
-        {live.userContent ? <Text>{' '}</Text> : null}
 
-        {/* Active tool calls */}
-        {live.activeToolCalls.map(call => (
-          <Box key={call.id} flexDirection="row">
-            <Text>{'  '}</Text>
-            <Text color={TOOL_COLOR[call.status]}>{TOOL_ICON[call.status] + ' '}</Text>
-            <Text color="#909090">
-              {call.toolName + (call.error ? '  ' + call.error : '')}
-            </Text>
-          </Box>
-        ))}
+        {/* Ordered blocks: text and tool calls interleaved as they arrived */}
+        {live.blocks.length > 0 ? (
+          <TurnBlocks blocks={live.blocks} cursor={showCursor} />
+        ) : null}
 
-        {/* Streaming AI response with blinking cursor */}
-        {live.streamingContent ? <Text>{live.streamingContent + '▌'}</Text> : null}
-
-        {/* Input box — Codex-style rounded border, full width */}
+        {/* Input box — Codex-style rounded border */}
         <Box borderStyle="round" borderColor="gray" paddingX={1}>
           {live.isThinking ? (
             <Text color="#ffd740">{'⠋ '}</Text>
@@ -261,7 +305,7 @@ export function App() {
           />
         </Box>
 
-        {/* Status: model · tokens · session */}
+        {/* Status bar */}
         <Text dimColor>{' ' + statusLine}</Text>
       </Box>
     </>

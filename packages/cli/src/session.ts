@@ -31,9 +31,10 @@ ENVIRONMENT
   CWD     : ${displayCwd}
   Platform: ${platform}
 
-FILESYSTEM (VFS paths)
-  /workspace/  →  ${displayCwd}  (your primary working directory)
-  /scratch/    →  in-memory scratch space for temporary files
+FILESYSTEM
+  ${cwd}/     real project path  (use this — matches paths in errors, git, shell output)
+  /workspace/ alias for the same directory
+  /scratch/   in-memory scratch space for temporary files
 
   Tools:
     read_file(path, offset?, limit?)   – read a file; slice with offset/limit
@@ -43,8 +44,9 @@ FILESYSTEM (VFS paths)
     stat(path)                         – check existence, type, size
     glob(pattern, base?)               – find files matching a glob
 
-  Always use /workspace/<relative-path> to access project files.
-  Use /scratch/ for ephemeral files you won't need after the conversation.
+  Use real absolute paths (e.g. ${cwd}/src/foo.ts) — they work directly.
+  /workspace/ is available as a convenience alias if you prefer short paths.
+  /scratch/ for ephemeral files you won't need after the conversation.
 
 SHELL
   run_command(command, cwd?, timeout?)
@@ -63,7 +65,7 @@ GUIDELINES
   - Prefer VFS tools for file I/O; use run_command for build/test/git operations.
   - Be concise and action-oriented. Do the work, explain briefly.
   - When editing files, use edit_file for targeted changes; write_file only for new files or full rewrites.
-  - Assume paths without a leading / are relative to /workspace/.
+  - Relative paths are resolved from ${cwd} (the project root).
   - When uncertain about project structure, list or glob before reading.`
 }
 
@@ -82,8 +84,14 @@ export function createSession(): LoomSession {
 
   const cwd = process.cwd()
 
-  // VFS: /workspace → cwd (local), /scratch → in-memory
+  // VFS mounts:
+  //   cwd          → real-path passthrough  (real absolute paths work — from shell output, errors, etc.)
+  //   /workspace   → same cwd              (alias; keeps backward compat)
+  //   /scratch     → in-memory             (ephemeral scratch space)
+  //
+  // Longest-prefix-match means the real absolute path always wins when both could match.
   const vfs = createFsVfs()
+  vfs.mount(cwd, createLocalBackend(cwd))
   vfs.mount('/workspace', createLocalBackend(cwd))
   vfs.mount('/scratch', createInMemoryBackend())
 

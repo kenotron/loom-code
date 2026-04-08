@@ -17,7 +17,8 @@
     "@anthropic-ai/sdk": "0.82.0",
     "ink": "6.8.0",
     "ink-text-input": "6.0.0",
-    "react": "19.2.4",
-    "streammark": "1.0.3"
+    "marked": "9",
+    "marked-terminal": "6",
+    "react": "19.2.4"
   }
 }

@@ -20,6 +20,7 @@
     "@loom-code/tool-tasks": "workspace:*",
     "@loom-code/tool-skills": "workspace:*",
     "@loom-code/ui-chat-history": "*",
+    "@loom-code/ui-markdown": "workspace:*",
     "@loom-code/ui-primitives": "*",
     "ink": "*",
     "ink-text-input": "*",

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Box, Text, Static, useStdout, useInput } from 'ink'
 import TextInput from 'ink-text-input'
-import { render as renderMd } from 'streammark'
+import Markdown from '@loom-code/ui-markdown'
 import type { ToolCallRow } from '@loom-code/ui-chat-history'
 import { createSession } from './session'
 
@@ -95,8 +95,8 @@ function ToolRow({ call }: { call: ToolCallRow }) {
 
 /**
  * Renders an ordered sequence of text + tool blocks.
- * Text blocks are always rendered via streammark, which handles partial
- * markdown gracefully during streaming — no swap needed.
+ * Uses @loom-code/ui-markdown (ESM fork of ink-markdown) which handles
+ * partial markdown gracefully during streaming — no plain/rendered swap.
  */
 function TurnBlocks({ blocks, cursor = false }: { blocks: TurnBlock[]; cursor?: boolean }) {
   return (
@@ -106,13 +106,11 @@ function TurnBlocks({ blocks, cursor = false }: { blocks: TurnBlock[]; cursor?: 
           return <ToolRow key={block.call.id} call={block.call} />
         }
         const isLast = i === blocks.length - 1
-        const rendered = renderMd(block.content)
-        // Append cursor to the raw content before rendering so it appears
-        // at the end of the last line, not on a line by itself.
-        const withCursor = cursor && isLast
-          ? renderMd(block.content.trimEnd() + '▌')
-          : rendered
-        return <Text key={i}>{withCursor}</Text>
+        return (
+          <Markdown key={i} cursor={cursor && isLast}>
+            {block.content}
+          </Markdown>
+        )
       })}
     </>
   )

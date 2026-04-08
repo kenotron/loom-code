@@ -1,0 +1,16 @@
+{
+  "name": "@loom-code/ui-markdown",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.tsx",
+  "scripts": { "test": "bun test", "typecheck": "bunx tsc --noEmit" },
+  "dependencies": {
+    "marked": "^9.0.3",
+    "marked-terminal": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@loom-code/ui-primitives": "workspace:*",
+    "ink": "*",
+    "react": "*"
+  }
+}

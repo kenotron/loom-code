@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import os from 'os'
+import path from 'path'
 import { Box, Text, Static, useStdout, useInput } from 'ink'
 import TextInput from 'ink-text-input'
 import Markdown from '@loom-code/ui-markdown'
@@ -67,6 +69,43 @@ const TOOL_COLOR: Record<ToolCallRow['status'], string> = {
   running: '#ffd740',
   success: '#69f0ae',
   error: '#ff6b6b',
+}
+
+// ── Banner ───────────────────────────────────────────────────────────────────
+
+const HOME = os.homedir()
+function fmtCwd(cwd: string) {
+  return cwd.startsWith(HOME) ? '~' + cwd.slice(HOME.length) : cwd
+}
+
+function Banner({ model }: { model: string }) {
+  const folder = fmtCwd(process.cwd())
+  return (
+    <Box flexDirection="column" paddingLeft={2}>
+      <Text>{' '}</Text>
+      <Box flexDirection="row">
+        <Text color="#606060">loom</Text>
+        <Text color="#ffd740"> · </Text>
+        <Text bold color="#ffffff">code</Text>
+      </Box>
+      <Text>{' '}</Text>
+      <Box flexDirection="column" paddingLeft={2}>
+        <Box flexDirection="row">
+          <Text color="#505050">model   </Text>
+          <Text color="#909090">{model}</Text>
+        </Box>
+        <Box flexDirection="row">
+          <Text color="#505050">folder  </Text>
+          <Text color="#909090">{folder}</Text>
+        </Box>
+        <Box flexDirection="row">
+          <Text color="#505050">help    </Text>
+          <Text color="#909090">type /help · Esc cancels · Ctrl-P commands</Text>
+        </Box>
+      </Box>
+      <Text>{' '}</Text>
+    </Box>
+  )
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
@@ -283,8 +322,10 @@ export function App() {
        * Must stay compact (< terminal height) to avoid flicker.
        */}
       <Box flexDirection="column">
-        {/* Top-of-app blank line — only before the first exchange */}
-        {completedExchanges.length === 0 && !isActiveTurn ? <Text>{' '}</Text> : null}
+        {/* Banner — only in the initial idle state */}
+        {completedExchanges.length === 0 && !isActiveTurn
+          ? <Banner model={modelName} />
+          : null}
 
         {/* In-flight user message */}
         {isActiveTurn ? (

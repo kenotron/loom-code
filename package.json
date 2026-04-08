@@ -1,6 +1,7 @@
 {
   "name": "loom-code",
   "private": true,
+  "type": "module",
   "workspaces": ["packages/*"],
   "scripts": {
     "dev": "bun run packages/cli/src/index.ts",

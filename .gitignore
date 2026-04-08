@@ -19,3 +19,7 @@ worktrees/
 .env
 .env.local
 *.tsbuildinfo
+
+# Amplifier agent tooling
+.amplifier/
+pyproject.toml

@@ -79,7 +79,7 @@ export function createSession(): LoomSession {
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set. Export it before running loom-code.')
   }
-  const model = process.env.MODEL ?? 'claude-sonnet-4-5'
+  const model = process.env.MODEL ?? 'claude-sonnet-4-6'
   const provider = createAnthropicProvider({ model, apiKey })
 
   const cwd = process.cwd()

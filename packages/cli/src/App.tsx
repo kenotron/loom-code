@@ -186,7 +186,7 @@ export function App() {
   // The same object is referenced inside live.blocks so mutating it updates the display.
   const toolCallMapRef = useRef<Map<string, ToolCallRow>>(new Map())
 
-  const modelName = process.env.MODEL ?? 'claude-sonnet-4-5'
+  const modelName = process.env.MODEL ?? 'claude-sonnet-4-6'
   const sessionShort = session.sessionId.slice(0, 8)
   const statusLine = `${modelName}  ${tokenCount < 1000 ? tokenCount : (tokenCount / 1000).toFixed(1) + 'k'} tokens  #${sessionShort}`
 

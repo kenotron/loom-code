@@ -3,7 +3,7 @@ import { createToolMap, registerPackageTools } from './tools'
 import { runTurn } from './loop'
 import type { LoomConfig, LoomPackage } from './types'
 import type { ToolMap } from './tools'
-import type { LoopOptions } from './loop'
+import type { LoopOptions, ThinkingConfig } from './loop'
 
 const _require = createRequire(import.meta.url)
 
@@ -167,8 +167,10 @@ export class LoomSession {
     prompt: string,
     callbacks: {
       onToken?: (delta: string) => void
-      onToolStart?: (name: string) => void
-      onToolEnd?: (name: string, success: boolean, output: string) => void
+      /** Called with streaming thinking/reasoning deltas when extended thinking is enabled. */
+      onThinking?: (delta: string) => void
+      onToolStart?: (id: string, name: string, input: unknown) => void
+      onToolEnd?: (id: string, name: string, success: boolean, output: string) => void
     } = {}
   ): Promise<string> {
     this._session.coordinator.resetTurn()
@@ -184,8 +186,11 @@ export class LoomSession {
       systemPrompt: this._config.systemPrompt,
       hooks: this._session.coordinator.hooks,
       onToken: callbacks.onToken ?? (() => {}),
+      onThinking: callbacks.onThinking,
       onToolStart: callbacks.onToolStart ?? (() => {}),
       onToolEnd: callbacks.onToolEnd ?? (() => {}),
+      maxTokens: this._config.maxTokens,
+      thinking: this._config.thinking,
     })
   }
 

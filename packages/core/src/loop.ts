@@ -12,16 +12,19 @@ export interface StreamingClient {
       system?: string
       tools: unknown[]
       messages: unknown[]
+      thinking?: { type: 'enabled'; budget_tokens: number }
     }): Promise<{
       [Symbol.asyncIterator](): AsyncIterator<{
         type: string
-        delta?: { type: string; text?: string }
+        index?: number
+        delta?: { type: string; text?: string; thinking?: string }
       }>
       finalMessage(): Promise<{
         stop_reason: string
         content: Array<{
           type: string
           text?: string
+          thinking?: string
           id?: string
           name?: string
           input?: unknown
@@ -36,6 +39,17 @@ export interface HookRegistry {
   emit(event: string, dataJson: string): Promise<{ action: string; reason?: string }>
 }
 
+export interface ThinkingConfig {
+  /** Enable extended thinking. Defaults to false. */
+  enabled: boolean
+  /**
+   * Token budget for the thinking block.
+   * Must be >= 1024. Defaults to 5000.
+   * Note: counts against max_tokens, so max_tokens must be > budget_tokens.
+   */
+  budgetTokens?: number
+}
+
 export interface LoopOptions {
   prompt: string
   messages: unknown[]
@@ -45,10 +59,12 @@ export interface LoopOptions {
   systemPrompt?: string
   hooks: HookRegistry
   onToken: (delta: string) => void
-  onToolStart: (name: string) => void
-  onToolEnd: (name: string, success: boolean, output: string) => void
+  onThinking?: (delta: string) => void
+  onToolStart: (id: string, name: string, input: unknown) => void
+  onToolEnd: (id: string, name: string, success: boolean, output: string) => void
   maxTurns?: number // defaults to 20 — prevents runaway loops
   maxTokens?: number // defaults to DEFAULT_MAX_TOKENS (8096)
+  thinking?: ThinkingConfig
 }
 
 /**
@@ -69,9 +85,15 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
     systemPrompt,
     hooks,
     onToken,
+    onThinking,
     onToolStart,
     onToolEnd,
   } = opts
+
+  const thinkingParam =
+    opts.thinking?.enabled
+      ? { type: 'enabled' as const, budget_tokens: opts.thinking.budgetTokens ?? 5000 }
+      : undefined
 
   messages.push({ role: 'user', content: prompt })
   await hooks.emit('prompt:submit', JSON.stringify({ prompt }))
@@ -100,6 +122,7 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
         system: systemPrompt,
         tools: toolSpecs,
         messages,
+        ...(thinkingParam ? { thinking: thinkingParam } : {}),
       })
     } catch (err) {
       throw new Error(
@@ -107,14 +130,14 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
       )
     }
 
-    // Stream text tokens to caller
+    // Stream text and thinking tokens to caller
     for await (const event of stream) {
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta?.type === 'text_delta' &&
-        event.delta.text
-      ) {
-        onToken(event.delta.text)
+      if (event.type === 'content_block_delta') {
+        if (event.delta?.type === 'text_delta' && event.delta.text) {
+          onToken(event.delta.text)
+        } else if (event.delta?.type === 'thinking_delta' && event.delta.thinking && onThinking) {
+          onThinking(event.delta.thinking)
+        }
       }
     }
 
@@ -154,7 +177,7 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
         if (pre.action === 'Deny') {
           output = { success: false, output: `blocked: ${pre.reason ?? 'policy'}` }
         } else {
-          onToolStart(toolName) // fires ONLY when tool will actually execute
+          onToolStart(block.id ?? toolName, toolName, block.input) // fires ONLY when tool will actually execute
           const bridge = toolMap.get(toolName)
           if (!bridge) {
             output = { success: false, output: `unknown tool: ${toolName}` }
@@ -182,7 +205,7 @@ export async function runTurn(opts: LoopOptions): Promise<string> {
           })
         )
 
-        onToolEnd(toolName, output.success, output.output)
+        onToolEnd(block.id ?? toolName, toolName, output.success, output.output)
 
         toolResults.push({
           type: 'tool_result',

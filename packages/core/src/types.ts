@@ -74,4 +74,27 @@ export interface LoomConfig {
   packages: LoomPackage[]
   /** Path to system prompt file (e.g. './AGENTS.md'). */
   systemPrompt?: string
+  /**
+   * Maximum tokens per response.
+   * Defaults to 8096 if omitted.
+   * Must be greater than thinking.budgetTokens when extended thinking is enabled.
+   */
+  maxTokens?: number
+  /**
+   * Extended thinking configuration.
+   * When enabled, the model reasons before responding.
+   * Requires a model that supports extended thinking (e.g. claude-sonnet-4-5).
+   *
+   * @example
+   * thinking: { enabled: true, budgetTokens: 10000 }
+   */
+  thinking?: {
+    enabled: boolean
+    /**
+     * Token budget for reasoning. Must be >= 1024.
+     * max_tokens must be greater than budgetTokens.
+     * Defaults to 5000.
+     */
+    budgetTokens?: number
+  }
 }

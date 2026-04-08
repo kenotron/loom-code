@@ -8,7 +8,7 @@ export type { ToolBridge, ToolMap } from './tools'
 export { createToolMap, registerPackageTools, deriveToolSpecs } from './tools'
 
 // Agentic loop
-export type { StreamingClient, HookRegistry, LoopOptions } from './loop'
+export type { StreamingClient, HookRegistry, LoopOptions, ThinkingConfig } from './loop'
 export { runTurn } from './loop'
 
 // Session

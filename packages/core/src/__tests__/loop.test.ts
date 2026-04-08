@@ -228,8 +228,8 @@ describe('runTurn — tool use', () => {
       model: 'claude-opus-4',
       hooks,
       onToken: () => {},
-      onToolStart: (name) => toolsStarted.push(name),
-      onToolEnd: (name, success) => toolsEnded.push(`${name}:${success}`),
+      onToolStart: (_id, name) => toolsStarted.push(name),
+      onToolEnd: (_id, name, success) => toolsEnded.push(`${name}:${success}`),
     })
 
     expect(result).toBe('Done: ping')
@@ -283,7 +283,7 @@ describe('runTurn — tool use', () => {
       hooks,
       onToken: () => {},
       onToolStart: () => {},
-      onToolEnd: (_name, success) => toolsEnded.push(`${success}`),
+      onToolEnd: (_id, _name, success) => toolsEnded.push(`${success}`),
     })
 
     // Denied tool still returns a result (blocked) and loop continues
@@ -309,7 +309,7 @@ describe('runTurn — tool use', () => {
       hooks,
       onToken: () => {},
       onToolStart: () => {},
-      onToolEnd: (_name, success) => toolsEnded.push(`${success}`),
+      onToolEnd: (_id, _name, success) => toolsEnded.push(`${success}`),
     })
 
     expect(toolsEnded).toContain('false') // error = success:false
@@ -332,7 +332,7 @@ describe('runTurn — tool use', () => {
       hooks,
       onToken: () => {},
       onToolStart: () => {},
-      onToolEnd: (_name, success) => toolsEnded.push(`${success}`),
+      onToolEnd: (_id, _name, success) => toolsEnded.push(`${success}`),
     })
 
     expect(toolsEnded).toContain('false') // unknown = success:false

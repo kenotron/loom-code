@@ -95,9 +95,28 @@ export function createSession(): LoomSession {
   vfs.mount('/workspace', createLocalBackend(cwd))
   vfs.mount('/scratch', createInMemoryBackend())
 
+  // max_tokens — output token ceiling (NOT context window size).
+  // claude-sonnet-4-6 allows up to 128 000 output tokens.
+  // Default: 16 000 (leaves 6 000 for actual response after a 10 000-token thinking budget).
+  // Override with MAX_TOKENS env var (e.g. MAX_TOKENS=32000 for larger file writes).
+  // Must be greater than thinking.budgetTokens when extended thinking is enabled.
+  const maxTokensRaw = process.env.MAX_TOKENS
+  const maxTokens = maxTokensRaw ? parseInt(maxTokensRaw, 10) : 16000
+
+  // Extended thinking — opt-in via THINKING_TOKENS env var.
+  // Set to a number >= 1024 to enable, e.g. THINKING_TOKENS=10000
+  // Note: max_tokens must be greater than budgetTokens.
+  const thinkingTokensRaw = process.env.THINKING_TOKENS
+  const thinkingTokens = thinkingTokensRaw ? parseInt(thinkingTokensRaw, 10) : 10000
+  const thinking = thinkingTokens >= 1024
+    ? { enabled: true, budgetTokens: thinkingTokens }
+    : undefined
+
   return new LoomSession({
     provider,
     systemPrompt: buildSystemPrompt(cwd),
+    maxTokens,
+    thinking,
     packages: [
       createFsPackage(vfs),
       createShellPackage({ cwd }),

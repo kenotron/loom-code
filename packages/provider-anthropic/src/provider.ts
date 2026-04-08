@@ -21,6 +21,11 @@ export function createAnthropicProvider(
     createClient: () =>
       new Anthropic({
         apiKey: config.apiKey ?? process.env.ANTHROPIC_API_KEY,
+        // Required for extended thinking (interleaved thinking blocks + tool use).
+        // Safe to include always — has no effect when thinking is not requested.
+        defaultHeaders: {
+          'anthropic-beta': 'interleaved-thinking-2025-05-14',
+        },
       }),
   }
 }

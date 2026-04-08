@@ -4,7 +4,12 @@ import type { ChatHistoryProps, DisplayItem } from './types'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
+function renderItem(
+  item: DisplayItem,
+  prev: DisplayItem | undefined,
+  next: DisplayItem | undefined,
+  onToggleGroup?: (id: string) => void
+) {
   switch (item.type) {
     case 'user-message':
       return (
@@ -32,8 +37,12 @@ function renderItem(item: DisplayItem, onToggleGroup?: (id: string) => void) {
           : 'status.success'
       const icon = anyRunning ? '⠋' : hasError ? '✗' : '✓'
       const arrow = group.collapsed ? '▶' : '▼'
+      // Add margin where the tool-group block borders non-tool content.
+      // Consecutive tool-groups get no gap between them.
+      const marginTop = prev?.type !== 'tool-group' ? 1 : 0
+      const marginBottom = next?.type !== 'tool-group' ? 1 : 0
       return (
-        <Box key={item.id} flexDirection="column">
+        <Box key={item.id} flexDirection="column" marginTop={marginTop} marginBottom={marginBottom}>
           <Box flexDirection="row">
             <Text>{'  '}</Text>
             <ColorText token={iconColor}>{icon + ' '}</ColorText>
@@ -105,7 +114,9 @@ export function ChatHistory({ state, onToggleGroup }: ChatHistoryProps) {
 
   return (
     <Box flexDirection="column">
-      {state.items.map(item => renderItem(item, onToggleGroup))}
+      {state.items.map((item, i) =>
+        renderItem(item, state.items[i - 1], state.items[i + 1], onToggleGroup)
+      )}
     </Box>
   )
 }

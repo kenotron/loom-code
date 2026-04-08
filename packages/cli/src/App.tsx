@@ -269,10 +269,10 @@ export function App() {
       <Static items={completedExchanges}>
         {exchange => (
           <Box key={exchange.id} flexDirection="column">
-            <Text>{' '}</Text>
             <UserBubble content={exchange.userContent} width={termWidth} />
             <Text>{' '}</Text>
             <TurnBlocks blocks={exchange.blocks} />
+            <Text>{' '}</Text>
           </Box>
         )}
       </Static>
@@ -283,10 +283,12 @@ export function App() {
        * Must stay compact (< terminal height) to avoid flicker.
        */}
       <Box flexDirection="column">
+        {/* Top-of-app blank line — separates CLI from shell prompt above */}
+        <Text>{' '}</Text>
+
         {/* In-flight user message */}
         {isActiveTurn ? (
           <>
-            <Text>{' '}</Text>
             <UserBubble content={live.userContent} width={termWidth} />
             <Text>{' '}</Text>
           </>

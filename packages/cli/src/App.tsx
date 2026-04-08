@@ -272,8 +272,6 @@ export function App() {
             <UserBubble content={exchange.userContent} width={termWidth} />
             <Text>{' '}</Text>
             <TurnBlocks blocks={exchange.blocks} />
-            <Text>{' '}</Text>
-            <Text dimColor>{'─'.repeat(termWidth)}</Text>
           </Box>
         )}
       </Static>

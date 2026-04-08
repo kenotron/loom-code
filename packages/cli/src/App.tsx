@@ -71,10 +71,16 @@ const TOOL_COLOR: Record<ToolCallRow['status'], string> = {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function UserBubble({ content }: { content: string }) {
+function UserBubble({ content, width }: { content: string; width: number }) {
+  const rule = '─'.repeat(width)
+  const pad  = ' '.repeat(width)
   return (
-    <Box flexDirection="column" paddingX={2} paddingY={1} backgroundColor="#2a2a2a">
-      <Text bold color="#ffffff">{content}</Text>
+    <Box flexDirection="column">
+      <Text dimColor>{rule}</Text>
+      <Text backgroundColor="#2a2a2a">{pad}</Text>
+      <Text bold color="#ffffff" backgroundColor="#2a2a2a">{'  ' + content}</Text>
+      <Text backgroundColor="#2a2a2a">{pad}</Text>
+      <Text dimColor>{rule}</Text>
     </Box>
   )
 }
@@ -263,7 +269,7 @@ export function App() {
       <Static items={completedExchanges}>
         {exchange => (
           <Box key={exchange.id} flexDirection="column">
-            <UserBubble content={exchange.userContent} />
+            <UserBubble content={exchange.userContent} width={termWidth} />
             <Text>{' '}</Text>
             <TurnBlocks blocks={exchange.blocks} />
             <Text>{' '}</Text>
@@ -281,7 +287,7 @@ export function App() {
         {/* In-flight user message */}
         {isActiveTurn ? (
           <>
-            <UserBubble content={live.userContent} />
+            <UserBubble content={live.userContent} width={termWidth} />
             <Text>{' '}</Text>
           </>
         ) : null}
@@ -291,8 +297,9 @@ export function App() {
           <TurnBlocks blocks={live.blocks} cursor={showCursor} />
         ) : null}
 
-        {/* Input box — Codex-style rounded border */}
-        <Box borderStyle="round" borderColor="gray" paddingX={1}>
+        {/* Input — upper + lower rule, no box */}
+        <Text dimColor>{'─'.repeat(termWidth)}</Text>
+        <Box flexDirection="row" paddingX={1}>
           {live.isThinking ? (
             <Text color="#ffd740">{'⠋ '}</Text>
           ) : (
@@ -306,6 +313,7 @@ export function App() {
             placeholder={live.isThinking ? 'generating… Esc to cancel' : ''}
           />
         </Box>
+        <Text dimColor>{'─'.repeat(termWidth)}</Text>
 
         {/* Status bar */}
         <Text dimColor>{' ' + statusLine}</Text>

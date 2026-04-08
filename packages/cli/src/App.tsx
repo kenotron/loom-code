@@ -269,6 +269,7 @@ export function App() {
       <Static items={completedExchanges}>
         {exchange => (
           <Box key={exchange.id} flexDirection="column">
+            <Text>{' '}</Text>
             <UserBubble content={exchange.userContent} width={termWidth} />
             <Text>{' '}</Text>
             <TurnBlocks blocks={exchange.blocks} />
@@ -285,6 +286,7 @@ export function App() {
         {/* In-flight user message */}
         {isActiveTurn ? (
           <>
+            <Text>{' '}</Text>
             <UserBubble content={live.userContent} width={termWidth} />
             <Text>{' '}</Text>
           </>

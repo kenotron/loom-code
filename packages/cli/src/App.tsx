@@ -283,8 +283,8 @@ export function App() {
        * Must stay compact (< terminal height) to avoid flicker.
        */}
       <Box flexDirection="column">
-        {/* Top-of-app blank line — separates CLI from shell prompt above */}
-        <Text>{' '}</Text>
+        {/* Top-of-app blank line — only before the first exchange */}
+        {completedExchanges.length === 0 && !isActiveTurn ? <Text>{' '}</Text> : null}
 
         {/* In-flight user message */}
         {isActiveTurn ? (

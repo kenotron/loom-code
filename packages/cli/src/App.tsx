@@ -295,7 +295,8 @@ export function App() {
           <TurnBlocks blocks={live.blocks} cursor={showCursor} />
         ) : null}
 
-        {/* Input */}
+        {/* Input — lines above and below */}
+        <Text dimColor>{'─'.repeat(termWidth)}</Text>
         <Box flexDirection="row" paddingX={1}>
           {live.isThinking ? (
             <Text color="#ffd740">{'⠋ '}</Text>
@@ -310,6 +311,7 @@ export function App() {
             placeholder={live.isThinking ? 'generating… Esc to cancel' : ''}
           />
         </Box>
+        <Text dimColor>{'─'.repeat(termWidth)}</Text>
 
         {/* Status bar */}
         <Text dimColor>{' ' + statusLine}</Text>

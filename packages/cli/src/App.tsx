@@ -73,10 +73,8 @@ const TOOL_COLOR: Record<ToolCallRow['status'], string> = {
 
 function UserBubble({ content }: { content: string }) {
   return (
-    <Box>
-      <Text>{'  '}</Text>
-      <Text bold color="#ffffff" backgroundColor="#1e1e1e">{content}</Text>
-      <Text>{'  '}</Text>
+    <Box flexDirection="column" paddingX={2} paddingY={1} backgroundColor="#2a2a2a">
+      <Text bold color="#ffffff">{content}</Text>
     </Box>
   )
 }

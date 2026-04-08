@@ -71,15 +71,19 @@ const TOOL_COLOR: Record<ToolCallRow['status'], string> = {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
+const USER_BG = '#383838'
+
 function UserBubble({ content, width }: { content: string; width: number }) {
-  const rule = '─'.repeat(width)
-  const pad  = ' '.repeat(width)
+  const rule    = '─'.repeat(width)
+  // Pad every line to exactly `width` chars so the background fills the full row
+  const blank   = ' '.repeat(width)
+  const msgLine = ('  ' + content).padEnd(width)
   return (
     <Box flexDirection="column">
       <Text dimColor>{rule}</Text>
-      <Text backgroundColor="#2a2a2a">{pad}</Text>
-      <Text bold color="#ffffff" backgroundColor="#2a2a2a">{'  ' + content}</Text>
-      <Text backgroundColor="#2a2a2a">{pad}</Text>
+      <Text backgroundColor={USER_BG}>{blank}</Text>
+      <Text bold color="#ffffff" backgroundColor={USER_BG}>{msgLine}</Text>
+      <Text backgroundColor={USER_BG}>{blank}</Text>
       <Text dimColor>{rule}</Text>
     </Box>
   )
